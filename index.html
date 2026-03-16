@@ -355,13 +355,6 @@
             background: rgba(33, 128, 141, 0.08);
         }
 
-        .broken-flag {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-        }
-
         .badge-mode {
             font-size: 11px;
             padding: 2px 8px;
@@ -446,6 +439,7 @@
             <select id="categoryFilter">
                 <option value="">Все категории</option>
             </select>
+            <button class="btn btn-secondary" id="deleteCategoryBtn">🗑 Удалить категорию</button>
             <button class="btn" id="addMovementBtn">➕ Добавить движение</button>
             <button class="btn btn-secondary" id="addItemBtn">➕ Добавить товар</button>
             <button class="btn btn-secondary" id="exportBtn">📥 Экспорт в Excel</button>
@@ -519,6 +513,9 @@
         </div>
     </div>
 
+    <!-- SheetJS для экспорта в Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <script>
         const ADMIN_PASSWORD = 'ekvator2024';
         let isAdmin = false;
@@ -585,6 +582,33 @@
 
         let journal = [];
         let currentTab = 'main';
+
+        function updateModeBadge() {
+            const badge = document.getElementById('modeBadge');
+            if (!badge) return;
+            if (isAdmin) {
+                badge.textContent = 'Режим: администратор';
+                badge.style.color = 'var(--color-success)';
+                badge.style.borderColor = 'var(--color-success)';
+            } else {
+                badge.textContent = 'Режим: просмотр';
+                badge.style.color = 'var(--color-text-secondary)';
+                badge.style.borderColor = 'var(--color-border)';
+            }
+        }
+
+        function checkAdminStatus() {
+            if (isAdmin) return true;
+            const password = prompt('Введите пароль администратора для редактирования:');
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                updateModeBadge();
+                return true;
+            } else {
+                alert('❌ Неверный пароль. Доступ только для просмотра.');
+                return false;
+            }
+        }
 
         function getAllItems() {
             return [
@@ -681,6 +705,7 @@
                         <button class="btn-icon" onclick="editItem('${item.name}')" title="Редактировать всё">✏️</button>
                         <button class="btn-icon" onclick="quickAdd('${item.name}')" title="Добавить">➕</button>
                         <button class="btn-icon" onclick="quickRemove('${item.name}')" title="Уменьшить">➖</button>
+                        <button class="btn-icon" onclick="deleteItem('${item.name}')" title="Удалить позицию">🗑</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -754,7 +779,7 @@
         });
 
         document.getElementById('addMovementBtn').addEventListener('click', () => {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             populateItemSelect();
             document.getElementById('movementModal').classList.add('active');
         });
@@ -818,11 +843,13 @@
                 <th>Ответственный</th>
                 <th>Мероприятие</th>
                 <th>Примечания</th>
+                <th>Действия</th>
             `;
 
             tbody.innerHTML = '';
             
-            journal.slice().reverse().forEach(entry => {
+            journal.slice().reverse().forEach((entry, reverseIndex) => {
+                const actualIndex = journal.length - 1 - reverseIndex;
                 const row = document.createElement('tr');
                 const opClass = entry.operation === 'Выдача' ? 'status-out' : 'status-available';
                 row.innerHTML = `
@@ -835,22 +862,110 @@
                     <td>${entry.responsible}</td>
                     <td>${entry.event}</td>
                     <td>${entry.notes}</td>
+                    <td>
+                        <button class="btn-icon" onclick="deleteJournalEntry(${actualIndex})" title="Удалить запись">🗑</button>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
 
             if (journal.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--color-text-secondary);">Журнал движения пуст</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--color-text-secondary);">Журнал движения пуст</td></tr>';
             }
         }
 
+        window.deleteJournalEntry = function(index) {
+            if (!isAdmin && !checkAdminStatus()) return;
+
+            const entry = journal[index];
+            if (!entry) return;
+
+            const ok = confirm(
+                `Удалить запись из журнала?\n\n` +
+                `Дата: ${entry.date} ${entry.time}\n` +
+                `Операция: ${entry.operation}\n` +
+                `Товар: ${entry.item}\n` +
+                `Количество: ${entry.quantity}`
+            );
+            if (!ok) return;
+
+            journal.splice(index, 1);
+            renderJournal();
+        };
+
+        window.exportJournalToExcel = function() {
+            if (journal.length === 0) {
+                alert('Журнал движения пуст. Нечего экспортировать.');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            
+            const journalData = journal.map(entry => ({
+                'Дата': entry.date,
+                'Время': entry.time,
+                'Операция': entry.operation,
+                'Наименование': entry.item,
+                'Количество': entry.quantity,
+                'Кому выдано / От кого': entry.person,
+                'Ответственный': entry.responsible,
+                'Мероприятие': entry.event,
+                'Примечания': entry.notes
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(journalData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Журнал движения');
+            
+            const filename = `Журнал_движения_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        };
+
         document.getElementById('exportBtn').addEventListener('click', () => {
-            alert('Функция экспорта в Excel будет добавлена позже');
+            if (currentTab === 'journal') {
+                exportJournalToExcel();
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            
+            const mainData = getAllItems().map(item => ({
+                'Категория': item.category || '',
+                'Подгруппа': item.subCategory || '',
+                'Наименование': item.name,
+                'Всего': item.total,
+                'В эксплуатации': item.inUse,
+                'На складе': item.total - item.inUse,
+                'Сломано': item.broken,
+                'На ремонте': item.repair,
+                'Статус': item.status || 'В наличии',
+                'Примечания': item.notes || ''
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(mainData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Основной склад');
+            
+            if (journal.length > 0) {
+                const journalData = journal.map(entry => ({
+                    'Дата': entry.date,
+                    'Время': entry.time,
+                    'Операция': entry.operation,
+                    'Наименование': entry.item,
+                    'Количество': entry.quantity,
+                    'Кому выдано / От кого': entry.person,
+                    'Ответственный': entry.responsible,
+                    'Мероприятие': entry.event,
+                    'Примечания': entry.notes
+                }));
+                const wsJournal = XLSX.utils.json_to_sheet(journalData);
+                XLSX.utils.book_append_sheet(wb, wsJournal, 'Журнал движения');
+            }
+            
+            const filename = `Склад_Экватор_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.xlsx`;
+            XLSX.writeFile(wb, filename);
         });
 
-        // Редактирование чисел
         window.editNumberField = function(itemName, field) {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -874,9 +989,8 @@
             renderTable(data);
         };
 
-        // Редактирование текстовых полей
         window.editTextField = function(itemName, field) {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -898,9 +1012,8 @@
             renderTable(data);
         };
 
-        // Быстро добавить / уменьшить количество
         window.quickAdd = function(itemName) {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -914,7 +1027,7 @@
         };
 
         window.quickRemove = function(itemName) {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -927,9 +1040,8 @@
             }
         };
 
-        // Редактирование статуса по клику
         window.editStatus = function(itemName) {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -949,9 +1061,8 @@
             renderTable(data);
         };
 
-        // Полное редактирование строки
         window.editItem = function(itemName) {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -1003,68 +1114,98 @@
             renderTable(data);
         };
 
-        // Галочка "сломано" (если захочешь вернуть, можно повесить на неё эту функцию)
-        window.toggleBrokenFlag = function(itemName, checked) {
-            if (!isAdmin) return;
+        window.deleteItem = function(itemName) {
+            if (!isAdmin && !checkAdminStatus()) return;
+
             const item = findItemByName(itemName);
             if (!item) return;
 
-            if (checked && item.broken === 0) {
-                item.broken = 1;
-            } else if (!checked && item.broken > 0) {
-                item.broken = item.broken;
+            const ok = confirm(`Удалить позицию "${item.name}" безвозвратно?`);
+            if (!ok) return;
+
+            for (const key of Object.keys(inventory)) {
+                inventory[key] = inventory[key].filter(i => i.name !== itemName);
             }
 
+            populateCategories();
             const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             renderTable(data);
         };
 
-        // Картинка в шапке с сохранением в localStorage
+        const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
+        deleteCategoryBtn.addEventListener('click', () => {
+            if (!isAdmin && !checkAdminStatus()) return;
+
+            const select = document.getElementById('categoryFilter');
+            const category = select.value;
+
+            if (!category) {
+                alert('Сначала выбери категорию в фильтре, которую нужно удалить.');
+                return;
+            }
+
+            const ok = confirm(
+                `Удалить ВСЕ позиции категории "${category}" безвозвратно?\n` +
+                `Эта операция удалит товары из всех вкладок, где используется эта категория.`
+            );
+            if (!ok) return;
+
+            for (const key of Object.keys(inventory)) {
+                inventory[key] = inventory[key].filter(item => item.category !== category);
+            }
+
+            populateCategories();
+            document.getElementById('categoryFilter').value = '';
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        });
+
         const headerImage = document.getElementById('headerImage');
         const HEADER_IMAGE_KEY = 'ekvatorHeaderImageUrl';
-        const defaultHeaderImage = 'https://images.pexels.com/photos/4484078/pexels-photo-4484078.jpeg?auto=compress&cs=tinysrgb&w=1200';
 
         function loadHeaderImage() {
             try {
                 const saved = localStorage.getItem(HEADER_IMAGE_KEY);
-                headerImage.src = saved || defaultHeaderImage;
+                if (saved) {
+                    headerImage.src = saved;
+                }
             } catch (e) {
-                headerImage.src = defaultHeaderImage;
+                // ignore
             }
         }
 
         document.getElementById('headerImageWrapper').addEventListener('click', () => {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
             const current = headerImage.src;
-            const input = prompt('Вставьте URL новой картинки для шапки склада:', current || defaultHeaderImage);
-            if (!input) return;
-            headerImage.src = input;
+            const url = prompt('Введите URL изображения для шапки:', current || '');
+            if (!url) return;
+            headerImage.src = url;
             try {
-                localStorage.setItem(HEADER_IMAGE_KEY, input);
-            } catch(e) {}
+                localStorage.setItem(HEADER_IMAGE_KEY, url);
+            } catch (e) {}
         });
 
-        // Кнопка "Добавить товар"
         const addItemBtn = document.getElementById('addItemBtn');
         addItemBtn.addEventListener('click', () => {
-            if (!isAdmin) return;
+            if (!isAdmin && !checkAdminStatus()) return;
 
-            const category = prompt('Категория (например: Мебель, Спортивное оборудование):', '');
+            const category = prompt('Категория:', '');
             if (category === null || category.trim() === '') return;
 
-            const subCategory = prompt('Подгруппа (например: Стулья, Столы):', '');
+            const subCategory = prompt('Подгруппа:', '');
             if (subCategory === null) return;
 
-            const name = prompt('Наименование товара:', '');
+            const name = prompt('Наименование:', '');
             if (name === null || name.trim() === '') return;
 
-            const totalStr = prompt('Количество всего:', '0');
+            const totalStr = prompt('Всего (шт):', '0');
             if (totalStr === null || isNaN(totalStr)) return;
+
             const total = Math.max(0, parseInt(totalStr, 10));
 
             const newItem = {
                 category: category.trim(),
-                subCategory: subCategory.trim() || '',
+                subCategory: subCategory.trim(),
                 name: name.trim(),
                 total,
                 inUse: 0,
@@ -1080,44 +1221,10 @@
             renderTable(data);
         });
 
-        // Режим администратора
-        function askAdmin() {
-            const wantAdmin = confirm('Вы администратор? Нажмите "ОК" для входа, или "Отмена" для режима только просмотра.');
-            if (!wantAdmin) {
-                isAdmin = false;
-                updateModeBadge();
-                return;
-            }
-            const pwd = prompt('Введите пароль администратора:');
-            if (pwd === ADMIN_PASSWORD) {
-                isAdmin = true;
-                alert('Админ-режим включен');
-            } else {
-                alert('Неверный пароль, режим только просмотра');
-                isAdmin = false;
-            }
-            updateModeBadge();
-        }
-
-        function updateModeBadge() {
-            const badge = document.getElementById('modeBadge');
-            if (!badge) return;
-            if (isAdmin) {
-                badge.textContent = 'Режим: администратор';
-                badge.style.color = 'var(--color-success)';
-                badge.style.borderColor = 'var(--color-success)';
-            } else {
-                badge.textContent = 'Режим: просмотр (read-only)';
-                badge.style.color = 'var(--color-text-secondary)';
-                badge.style.borderColor = 'var(--color-border)';
-            }
-        }
-
-        // Инициализация
         loadHeaderImage();
         populateCategories();
         renderTable(getAllItems());
-        askAdmin();
+        updateModeBadge();
     </script>
 </body>
 </html>
