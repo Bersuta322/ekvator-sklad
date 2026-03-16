@@ -1,772 +1,291 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Складской Учет Инвентаря</title>
+    <title>Экватор Склад — Вход</title>
     <style>
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+        }
+
+        :root {
+            --color-background: #1f2121;
+            --color-surface: #262828;
+            --color-text: #f5f5f5;
+            --color-text-secondary: rgba(167, 169, 169, 0.7);
+            --color-primary: #32b8c6;
+            --color-primary-hover: #2da6b2;
+            --color-error: #ff5459;
+            --color-border: rgba(119, 124, 124, 0.3);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--color-background);
+            background: radial-gradient(circle at top, #2b3133 0, #151718 55%, #0c0d0e 100%);
             color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
         }
 
-        :root {
-            --color-background: #f5f5f5;
-            --color-surface: #ffffff;
-            --color-text: #1f2121;
-            --color-text-secondary: #626c71;
-            --color-primary: #21808d;
-            --color-primary-hover: #1d7480;
-            --color-border: rgba(94, 82, 64, 0.2);
-            --color-success: #21808d;
-            --color-warning: #e68161;
-            --color-error: #c0152f;
-            --color-red: #ff5459;
-            --color-orange: #ffa726;
-            --color-green: #66bb6a;
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(21, 23, 24, 0.96);
+            border-radius: 18px;
+            padding: 28px 24px 24px;
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.65),
+                0 0 0 1px rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--color-border);
+            backdrop-filter: blur(18px);
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --color-background: #1f2121;
-                --color-surface: #262828;
-                --color-text: #f5f5f5;
-                --color-text-secondary: rgba(167, 169, 169, 0.7);
-                --color-primary: #32b8c6;
-                --color-primary-hover: #2da6b2;
-                --color-border: rgba(119, 124, 124, 0.3);
-            }
+        .card-header {
+            margin-bottom: 18px;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        .subtitle {
+            font-size: 12px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            margin-bottom: 6px;
         }
 
-        header {
-            background: var(--color-surface);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title-icon {
+            font-size: 22px;
+            filter: drop-shadow(0 0 10px rgba(50, 184, 198, 0.5));
         }
 
         h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            background: var(--color-border);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            color: var(--color-text);
-            transition: all 0.2s;
-        }
-
-        .tab:hover {
-            background: var(--color-primary);
-            color: white;
-        }
-
-        .tab.active {
-            background: var(--color-primary);
-            color: white;
-        }
-
-        .controls {
-            background: var(--color-surface);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        input, select {
-            padding: 10px 15px;
-            border: 1px solid var(--color-border);
-            border-radius: 8px;
-            background: var(--color-background);
-            color: var(--color-text);
-            font-size: 14px;
-        }
-
-        input:focus, select:focus {
-            outline: 2px solid var(--color-primary);
-            border-color: var(--color-primary);
-        }
-
-        .search-input {
-            flex: 1;
-            min-width: 250px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            background: var(--color-primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background: var(--color-primary-hover);
-        }
-
-        .btn-secondary {
-            background: var(--color-border);
-            color: var(--color-text);
-        }
-
-        .btn-secondary:hover {
-            background: var(--color-text-secondary);
-        }
-
-        .table-wrapper {
-            background: var(--color-surface);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead {
-            background: var(--color-border);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        th {
-            padding: 15px 10px;
-            text-align: left;
+            font-size: 22px;
             font-weight: 600;
+        }
+
+        .description {
+            margin-top: 10px;
             font-size: 13px;
-            color: var(--color-text);
-            border-bottom: 2px solid var(--color-border);
+            color: var(--color-text-secondary);
+            line-height: 1.5;
         }
 
-        td {
-            padding: 12px 10px;
-            border-bottom: 1px solid var(--color-border);
-            font-size: 14px;
-        }
-
-        tr:hover {
-            background: var(--color-border);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .status-available {
-            background: rgba(102, 187, 106, 0.2);
-            color: var(--color-green);
-        }
-
-        .status-low {
-            background: rgba(255, 167, 38, 0.2);
-            color: var(--color-orange);
-        }
-
-        .status-out {
-            background: rgba(255, 84, 89, 0.2);
-            color: var(--color-red);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--color-surface);
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            margin-bottom: 20px;
-        }
-
-        .modal-header h2 {
-            font-size: 24px;
+        .description strong {
+            color: var(--color-primary);
+            font-weight: 600;
         }
 
         .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
             margin-top: 20px;
         }
 
-        .summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .summary-card {
-            background: var(--color-surface);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .summary-card h3 {
-            font-size: 14px;
-            color: var(--color-text-secondary);
-            margin-bottom: 8px;
-        }
-
-        .summary-card .value {
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--color-primary);
-        }
-
-        .history-item {
-            padding: 12px;
-            border-left: 3px solid var(--color-primary);
-            margin-bottom: 10px;
-            background: var(--color-background);
-            border-radius: 4px;
-        }
-
-        .history-time {
+        label {
+            display: block;
             font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--color-text-secondary);
+            margin-bottom: 6px;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 11px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(119, 124, 124, 0.6);
+            background: rgba(13, 15, 16, 0.9);
+            color: var(--color-text);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        input[type="password"]::placeholder {
+            color: rgba(167, 169, 169, 0.5);
+        }
+
+        input[type="password"]:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 1px rgba(50, 184, 198, 0.4);
+            background: rgba(13, 15, 16, 0.98);
+        }
+
+        .button-row {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            border: none;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--color-primary);
+            color: #020303;
+            transition: background 0.18s ease, transform 0.06s ease, box-shadow 0.18s ease;
+            box-shadow: 0 10px 28px rgba(50, 184, 198, 0.28);
+        }
+
+        button:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 32px rgba(50, 184, 198, 0.34);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 18px rgba(50, 184, 198, 0.25);
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--color-text-secondary);
+            margin-top: 6px;
+        }
+
+        .status {
+            margin-top: 14px;
+            font-size: 12px;
+            min-height: 18px;
+        }
+
+        .status.ok {
+            color: #66bb6a;
+        }
+
+        .status.error {
+            color: var(--color-error);
+        }
+
+        .footer {
+            margin-top: 18px;
+            border-top: 1px solid rgba(119, 124, 124, 0.4);
+            padding-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
             color: var(--color-text-secondary);
         }
 
-        .btn-icon {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 18px;
-            padding: 5px;
-            margin: 0 2px;
-            border-radius: 4px;
-            transition: background 0.2s;
+        .badge {
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(119, 124, 124, 0.6);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
         }
 
-        .btn-icon:hover {
-            background: var(--color-border);
-        }
-
-        @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
+        @media (max-width: 480px) {
+            .card {
+                padding: 22px 18px 18px;
             }
 
-            table {
-                font-size: 12px;
-            }
-
-            th, td {
-                padding: 8px 5px;
+            h1 {
+                font-size: 20px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📦 Складской Учет Инвентаря</h1>
-            <p style="color: var(--color-text-secondary); margin-top: 5px;">Система учета инвентаря для мероприятий</p>
-            
-            <div class="tabs">
-                <button class="tab active" data-tab="main">Основной склад</button>
-                <button class="tab" data-tab="flags">Флаги и виндеры</button>
-                <button class="tab" data-tab="tablecloths">Скатерти</button>
-                <button class="tab" data-tab="vests">Манишки</button>
-                <button class="tab" data-tab="journal">Журнал движения</button>
+    <div class="card">
+        <div class="card-header">
+            <div class="subtitle">Экватор • Склад</div>
+            <div class="title-row">
+                <div class="title-icon">📦</div>
+                <h1>Вход к учёту инвентаря</h1>
             </div>
-        </header>
-
-        <div class="summary">
-            <div class="summary-card">
-                <h3>Всего позиций</h3>
-                <div class="value" id="totalItems">0</div>
-            </div>
-            <div class="summary-card">
-                <h3>В эксплуатации</h3>
-                <div class="value" id="inUse">0</div>
-            </div>
-            <div class="summary-card">
-                <h3>На складе</h3>
-                <div class="value" id="inStock">0</div>
-            </div>
-            <div class="summary-card">
-                <h3>Сломано</h3>
-                <div class="value" style="color: var(--color-error);" id="broken">0</div>
-            </div>
+            <p class="description">
+                Доступ только для внутренней команды.  
+                Введите служебный пароль, чтобы открыть панель <strong>складского учёта</strong>.
+            </p>
         </div>
 
-        <div class="controls">
-            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по названию...">
-            <select id="categoryFilter">
-                <option value="">Все категории</option>
-            </select>
-            <button class="btn" id="addMovementBtn">➕ Добавить движение</button>
-            <button class="btn btn-secondary" id="exportBtn">📥 Экспорт в Excel</button>
+        <div class="form-group">
+            <label for="password">Пароль</label>
+            <input
+                type="password"
+                id="password"
+                placeholder="Введите пароль"
+                autocomplete="current-password"
+            />
+            <div class="hint">Пароль знаешь только ты (хранится в коде на GitHub).</div>
         </div>
 
-        <div class="table-wrapper">
-            <table id="inventoryTable">
-                <thead>
-                    <tr>
-                        <th>Категория</th>
-                        <th>Наименование</th>
-                        <th>Всего</th>
-                        <th>В эксплуатации</th>
-                        <th>На складе</th>
-                        <th>Сломано</th>
-                        <th>На ремонте</th>
-                        <th>Статус</th>
-                        <th>Примечания</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
+        <div class="button-row">
+            <button id="loginButton">
+                Войти в Экватор Склад
+            </button>
         </div>
-    </div>
 
-    <div class="modal" id="movementModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Добавить движение товара</h2>
-            </div>
-            <form id="movementForm">
-                <div class="form-group">
-                    <label>Операция</label>
-                    <select id="operationType" required>
-                        <option value="">Выберите операцию</option>
-                        <option value="Выдача">Выдача</option>
-                        <option value="Возврат">Возврат</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Наименование товара</label>
-                    <select id="itemName" required></select>
-                </div>
-                <div class="form-group">
-                    <label>Количество</label>
-                    <input type="number" id="quantity" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label>Кому выдано / От кого принято</label>
-                    <input type="text" id="person" required>
-                </div>
-                <div class="form-group">
-                    <label>Ответственный</label>
-                    <input type="text" id="responsible">
-                </div>
-                <div class="form-group">
-                    <label>Мероприятие</label>
-                    <input type="text" id="event">
-                </div>
-                <div class="form-group">
-                    <label>Примечания</label>
-                    <input type="text" id="notes">
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" class="btn">Сохранить</button>
-                    <button type="button" class="btn btn-secondary" id="cancelBtn">Отмена</button>
-                </div>
-            </form>
+        <div class="status" id="status"></div>
+
+        <div class="footer">
+            <span class="badge">internal access</span>
+            <span>GitHub Pages • static gate</span>
         </div>
     </div>
 
     <script>
-        const inventory = {
-            main: [
-                {category: "Мебель", name: "Стулья", total: 340, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мебель", name: "Столы", total: 178, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мебель", name: "Столы новые (в коробках)", total: 30, inUse: 0, broken: 0, repair: 0, notes: "Не распечатаны"},
-                {category: "Оборудование", name: "Рол-ап", total: 47, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Бытовая техника", name: "Утюг", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Бытовая техника", name: "Отпариватель", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Весы", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Весы командные", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Дартс", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Стойки для дартса", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Столы для армрестлинга", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Турник", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Маты красно-желтые", total: 6, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Будо маты", total: 10, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Счетчик для гирь электронный со стойками", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Таймер для кроссфита", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные желто-синие", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные пляжные желто-зеленые", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные бело-синие", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Футбольные Фонбет (новые)", total: 18, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Футбольные Adidas", total: 8, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные обычные", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные 3х3", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные SIBUR", total: 11, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Блины 5 кг", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Блины 15 кг", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Гири 24 кг", total: 9, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Гири 16 кг", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Удочки", total: 84, inUse: 0, broken: 0, repair: 0, notes: "84-100 можно собрать"},
-                {category: "Безопасность", name: "Огнетушители", total: 21, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Связь", name: "Рации", total: 14, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Электрика", name: "Удлинители", total: 24, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Оборудование", name: "Планшетки", total: 110, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Настольные игры", name: "Шахматы", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Настольные игры", name: "Нарды", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""}
-            ],
-            flags: [
-                {name: "Олимбет", total: 20, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР виндеры (красный, белый, синий)", total: 68, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР виндеры игры (с рисунком)", total: 65, inUse: 0, broken: 0, repair: 0},
-                {name: "Ростех", total: 24, inUse: 0, broken: 0, repair: 0},
-                {name: "АРКС зеленые", total: 19, inUse: 0, broken: 0, repair: 0},
-                {name: "Флаг России", total: 5, inUse: 0, broken: 0, repair: 0}
-            ],
-            tablecloths: [
-                {name: "ТР скатерть цветная", total: 15, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР скатерть синяя", total: 12, inUse: 0, broken: 0, repair: 0},
-                {name: "Черная скатерть", total: 33, inUse: 0, broken: 0, repair: 0},
-                {name: "Скатерть АРКС", total: 32, inUse: 0, broken: 0, repair: 0}
-            ],
-            vests: [
-                {name: "Персонал красный атлас", total: 42, inUse: 0, broken: 0, repair: 0},
-                {name: "Судья синий атлас", total: 150, inUse: 0, broken: 0, repair: 0},
-                {name: "Красные STAFF", total: 47, inUse: 0, broken: 0, repair: 0},
-                {name: "Голубая-салатовая двухсторонняя", total: 70, inUse: 0, broken: 0, repair: 0}
-            ]
-        };
+        // Задай свой пароль здесь
+        const PASSWORD = 'ekvator2024'; // Можешь поменять на любой
 
-        let journal = [];
-        let currentTab = 'main';
+        const passwordInput = document.getElementById('password');
+        const statusEl = document.getElementById('status');
+        const loginButton = document.getElementById('loginButton');
 
-        function renderTable(data) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+        function tryLogin() {
+            const value = passwordInput.value.trim();
 
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const categoryFilter = document.getElementById('categoryFilter').value;
-
-            const filtered = data.filter(item => {
-                const matchesSearch = item.name.toLowerCase().includes(searchTerm);
-                const matchesCategory = !categoryFilter || item.category === categoryFilter;
-                return matchesSearch && matchesCategory;
-            });
-
-            filtered.forEach(item => {
-                const available = item.total - item.inUse;
-                let statusClass = 'status-available';
-                let statusText = '✓ В наличии';
-
-                if (available === 0) {
-                    statusClass = 'status-out';
-                    statusText = '✗ Нет на складе';
-                } else if (available < 10) {
-                    statusClass = 'status-low';
-                    statusText = '⚠ Мало';
-                }
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.category || '-'}</td>
-                    <td><strong>${item.name}</strong></td>
-                    <td>${item.total}</td>
-                    <td>${item.inUse}</td>
-                    <td>${available}</td>
-                    <td>${item.broken}</td>
-                    <td>${item.repair}</td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>${item.notes || '-'}</td>
-                    <td>
-                        <button class="btn-icon" onclick="editItem('${currentTab}', '${item.name}')" title="Редактировать">✏️</button>
-                        <button class="btn-icon" onclick="quickAdd('${currentTab}', '${item.name}')" title="Добавить">➕</button>
-                        <button class="btn-icon" onclick="quickRemove('${currentTab}', '${item.name}')" title="Уменьшить">➖</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            updateSummary(data);
-        }
-
-        function updateSummary(data) {
-            const totalItems = data.reduce((sum, item) => sum + item.total, 0);
-            const inUse = data.reduce((sum, item) => sum + item.inUse, 0);
-            const inStock = data.reduce((sum, item) => sum + (item.total - item.inUse), 0);
-            const broken = data.reduce((sum, item) => sum + item.broken, 0);
-
-            document.getElementById('totalItems').textContent = totalItems;
-            document.getElementById('inUse').textContent = inUse;
-            document.getElementById('inStock').textContent = inStock;
-            document.getElementById('broken').textContent = broken;
-        }
-
-        function populateCategories() {
-            const categories = [...new Set(inventory.main.map(item => item.category))];
-            const select = document.getElementById('categoryFilter');
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
-                select.appendChild(option);
-            });
-        }
-
-        function populateItemSelect() {
-            const select = document.getElementById('itemName');
-            select.innerHTML = '<option value="">Выберите товар</option>';
-            
-            const currentData = inventory[currentTab];
-            currentData.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.name;
-                option.textContent = item.name;
-                select.appendChild(option);
-            });
-        }
-
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                currentTab = tab.dataset.tab;
-                
-                if (currentTab === 'journal') {
-                    renderJournal();
-                } else {
-                    renderTable(inventory[currentTab]);
-                }
-            });
-        });
-
-        document.getElementById('searchInput').addEventListener('input', () => {
-            renderTable(inventory[currentTab]);
-        });
-
-        document.getElementById('categoryFilter').addEventListener('change', () => {
-            renderTable(inventory[currentTab]);
-        });
-
-        document.getElementById('addMovementBtn').addEventListener('click', () => {
-            populateItemSelect();
-            document.getElementById('movementModal').classList.add('active');
-        });
-
-        document.getElementById('cancelBtn').addEventListener('click', () => {
-            document.getElementById('movementModal').classList.remove('active');
-            document.getElementById('movementForm').reset();
-        });
-
-        document.getElementById('movementForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const operation = document.getElementById('operationType').value;
-            const itemName = document.getElementById('itemName').value;
-            const quantity = parseInt(document.getElementById('quantity').value);
-            const person = document.getElementById('person').value;
-            const responsible = document.getElementById('responsible').value;
-            const event = document.getElementById('event').value;
-            const notes = document.getElementById('notes').value;
-
-            const item = inventory[currentTab].find(i => i.name === itemName);
-            
-            if (item) {
-                if (operation === 'Выдача') {
-                    item.inUse += quantity;
-                } else {
-                    item.inUse = Math.max(0, item.inUse - quantity);
-                }
-
-                journal.push({
-                    date: new Date().toLocaleDateString('ru-RU'),
-                    time: new Date().toLocaleTimeString('ru-RU'),
-                    operation,
-                    item: itemName,
-                    quantity,
-                    person,
-                    responsible,
-                    event,
-                    notes
-                });
-
-                renderTable(inventory[currentTab]);
-                document.getElementById('movementModal').classList.remove('active');
-                document.getElementById('movementForm').reset();
+            if (!value) {
+                statusEl.textContent = 'Введите пароль';
+                statusEl.className = 'status error';
+                passwordInput.focus();
+                return;
             }
-        });
 
-        function renderJournal() {
-            const tbody = document.getElementById('tableBody');
-            const thead = document.querySelector('#inventoryTable thead tr');
-            
-            thead.innerHTML = `
-                <th>Дата</th>
-                <th>Время</th>
-                <th>Операция</th>
-                <th>Наименование</th>
-                <th>Количество</th>
-                <th>Кому выдано / От кого</th>
-                <th>Ответственный</th>
-                <th>Мероприятие</th>
-                <th>Примечания</th>
-            `;
+            if (value === PASSWORD) {
+                statusEl.textContent = 'Пароль принят, открываю склад...';
+                statusEl.className = 'status ok';
 
-            tbody.innerHTML = '';
-            
-            journal.reverse().forEach(entry => {
-                const row = document.createElement('tr');
-                const opClass = entry.operation === 'Выдача' ? 'status-out' : 'status-available';
-                row.innerHTML = `
-                    <td>${entry.date}</td>
-                    <td>${entry.time}</td>
-                    <td><span class="status-badge ${opClass}">${entry.operation}</span></td>
-                    <td><strong>${entry.item}</strong></td>
-                    <td>${entry.quantity}</td>
-                    <td>${entry.person}</td>
-                    <td>${entry.responsible}</td>
-                    <td>${entry.event}</td>
-                    <td>${entry.notes}</td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            if (journal.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--color-text-secondary);">Журнал движения пуст</td></tr>';
+                setTimeout(() => {
+                    // Перенаправление на страницу склада
+                    window.location.href = 'https://bersuta322.github.io/ekvator-sklad/index.html';
+                    // если перенесёшь файл в другой путь — поменяй URL выше
+                }, 500);
+            } else {
+                statusEl.textContent = 'Неверный пароль';
+                statusEl.className = 'status error';
+                passwordInput.select();
             }
         }
 
-        document.getElementById('exportBtn').addEventListener('click', () => {
-            alert('Функция экспорта в Excel будет доступна после подключения библиотеки экспорта');
+        loginButton.addEventListener('click', tryLogin);
+
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                tryLogin();
+            }
         });
-
-        window.editItem = function(tab, itemName) {
-            const item = inventory[tab].find(i => i.name === itemName);
-            if (!item) return;
-
-            const newTotal = prompt(`Редактировать "${item.name}"\n\nВсего на складе:`, item.total);
-            if (newTotal !== null && !isNaN(newTotal)) {
-                item.total = parseInt(newTotal);
-            }
-
-            const newInUse = prompt(`В эксплуатации:`, item.inUse);
-            if (newInUse !== null && !isNaN(newInUse)) {
-                item.inUse = parseInt(newInUse);
-            }
-
-            const newBroken = prompt(`Сломано:`, item.broken);
-            if (newBroken !== null && !isNaN(newBroken)) {
-                item.broken = parseInt(newBroken);
-            }
-
-            const newRepair = prompt(`На ремонте:`, item.repair);
-            if (newRepair !== null && !isNaN(newRepair)) {
-                item.repair = parseInt(newRepair);
-            }
-
-            const newNotes = prompt(`Примечания:`, item.notes || '');
-            if (newNotes !== null) {
-                item.notes = newNotes;
-            }
-
-            renderTable(inventory[currentTab]);
-        };
-
-        window.quickAdd = function(tab, itemName) {
-            const item = inventory[tab].find(i => i.name === itemName);
-            if (!item) return;
-
-            const quantity = prompt(`Добавить количество для "${item.name}":`, '1');
-            if (quantity !== null && !isNaN(quantity)) {
-                const amount = parseInt(quantity);
-                item.total += amount;
-                renderTable(inventory[currentTab]);
-            }
-        };
-
-        window.quickRemove = function(tab, itemName) {
-            const item = inventory[tab].find(i => i.name === itemName);
-            if (!item) return;
-
-            const quantity = prompt(`Уменьшить количество для "${item.name}":`, '1');
-            if (quantity !== null && !isNaN(quantity)) {
-                const amount = parseInt(quantity);
-                item.total = Math.max(0, item.total - amount);
-                renderTable(inventory[currentTab]);
-            }
-        };
-
-        populateCategories();
-        renderTable(inventory.main);
     </script>
 </body>
 </html>
