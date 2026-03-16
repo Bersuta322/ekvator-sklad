@@ -362,6 +362,14 @@
             font-size: 12px;
         }
 
+        .badge-mode {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+        }
+
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -395,8 +403,9 @@
                 <div class="header-text">
                     <h1>📦 Экватор Склад — учет инвентаря</h1>
                     <p style="color: var(--color-text-secondary); margin-top: 5px;">
-                        Система учета инвентаря для мероприятий. Клик по любому полю — редактирование.
+                        Система учета инвентаря для мероприятий. Клик по полям — редактирование (только для администратора).
                     </p>
+                    <div id="modeBadge" class="badge-mode">Режим: просмотр</div>
                 </div>
                 <div class="header-image-wrapper" id="headerImageWrapper">
                     <img id="headerImage" src="" alt="Изображение склада">
@@ -455,7 +464,7 @@
                         <th>Сломано</th>
                         <th>На ремонте</th>
                         <th>Статус</th>
-                        <th>Примечания / Сломано</th>
+                        <th>Примечания</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -511,6 +520,9 @@
     </div>
 
     <script>
+        const ADMIN_PASSWORD = 'ekvator2024';
+        let isAdmin = false;
+
         const inventory = {
             main: [
                 {category: "Мебель", subCategory: "Стулья", name: "Стулья", total: 340, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
@@ -612,7 +624,7 @@
                     <th>Сломано</th>
                     <th>На ремонте</th>
                     <th>Статус</th>
-                    <th>Примечания / Сломано</th>
+                    <th>Примечания</th>
                     <th>Действия</th>
                 `;
             }
@@ -657,27 +669,16 @@
                     <td>${available}</td>
                     <td class="editable-cell" onclick="editNumberField('${item.name}', 'broken')">${item.broken}</td>
                     <td class="editable-cell" onclick="editNumberField('${item.name}', 'repair')">${item.repair}</td>
-                    <td>
+                    <td class="editable-cell" onclick="editStatus('${item.name}')">
                         <span class="status-badge ${statusClass}">
                             ${statusText}
                         </span>
-                        <br>
-                        <select onchange="changeStatus('${item.name}', this.value)">
-                            <option value="В наличии" ${status === 'В наличии' ? 'selected' : ''}>В наличии</option>
-                            <option value="Не хватает" ${status === 'Не хватает' ? 'selected' : ''}>Не хватает</option>
-                            <option value="Нужно закупить" ${status === 'Нужно закупить' ? 'selected' : ''}>Нужно закупить</option>
-                        </select>
+                    </td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'notes')">
+                        ${item.notes || '-'}
                     </td>
                     <td>
-                        <div class="editable-cell" onclick="editTextField('${item.name}', 'notes')">
-                            ${item.notes || '-'}
-                        </div>
-                        <label class="broken-flag">
-                            <input type="checkbox" onchange="toggleBrokenFlag('${item.name}', this.checked)">
-                            сломано
-                        </label>
-                    </td>
-                    <td>
+                        <button class="btn-icon" onclick="editItem('${item.name}')" title="Редактировать всё">✏️</button>
                         <button class="btn-icon" onclick="quickAdd('${item.name}')" title="Добавить">➕</button>
                         <button class="btn-icon" onclick="quickRemove('${item.name}')" title="Уменьшить">➖</button>
                     </td>
@@ -753,6 +754,7 @@
         });
 
         document.getElementById('addMovementBtn').addEventListener('click', () => {
+            if (!isAdmin) return;
             populateItemSelect();
             document.getElementById('movementModal').classList.add('active');
         });
@@ -764,6 +766,7 @@
 
         document.getElementById('movementForm').addEventListener('submit', (e) => {
             e.preventDefault();
+            if (!isAdmin) return;
             
             const operation = document.getElementById('operationType').value;
             const itemName = document.getElementById('itemName').value;
@@ -847,6 +850,7 @@
 
         // Редактирование чисел
         window.editNumberField = function(itemName, field) {
+            if (!isAdmin) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -872,6 +876,7 @@
 
         // Редактирование текстовых полей
         window.editTextField = function(itemName, field) {
+            if (!isAdmin) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -895,6 +900,7 @@
 
         // Быстро добавить / уменьшить количество
         window.quickAdd = function(itemName) {
+            if (!isAdmin) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -908,6 +914,7 @@
         };
 
         window.quickRemove = function(itemName) {
+            if (!isAdmin) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -920,8 +927,85 @@
             }
         };
 
-        // Галочка "сломано" — только число "сломано"
+        // Редактирование статуса по клику
+        window.editStatus = function(itemName) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const current = item.status || 'В наличии';
+            const msg = `${item.name}\nТекущий статус: ${current}\n\n1 — В наличии\n2 — Не хватает\n3 — Нужно закупить\n\nВведите номер статуса:`;
+            const input = prompt(msg, '1');
+            if (input === null) return;
+
+            let newStatus = current;
+            if (input === '1') newStatus = 'В наличии';
+            else if (input === '2') newStatus = 'Не хватает';
+            else if (input === '3') newStatus = 'Нужно закупить';
+            else return;
+
+            item.status = newStatus;
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        // Полное редактирование строки
+        window.editItem = function(itemName) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const newCategory = prompt(`Редактирование "${item.name}"\nКатегория:`, item.category || '');
+            if (newCategory === null) return;
+
+            const newSubCategory = prompt('Подгруппа:', item.subCategory || '');
+            if (newSubCategory === null) return;
+
+            const newName = prompt('Наименование:', item.name || '');
+            if (newName === null || newName.trim() === '') return;
+
+            const newTotal = prompt('Всего:', item.total);
+            if (newTotal === null || isNaN(newTotal)) return;
+
+            const newInUse = prompt('В эксплуатации:', item.inUse);
+            if (newInUse === null || isNaN(newInUse)) return;
+
+            const newBroken = prompt('Сломано:', item.broken);
+            if (newBroken === null || isNaN(newBroken)) return;
+
+            const newRepair = prompt('На ремонте:', item.repair);
+            if (newRepair === null || isNaN(newRepair)) return;
+
+            const newNotes = prompt('Примечания:', item.notes || '');
+            if (newNotes === null) return;
+
+            const statusMsg = `Статус (сейчас: ${item.status || 'В наличии'})\n1 — В наличии\n2 — Не хватает\n3 — Нужно закупить`;
+            const statusInput = prompt(statusMsg, '1');
+            if (statusInput === null) return;
+
+            let newStatus = item.status || 'В наличии';
+            if (statusInput === '1') newStatus = 'В наличии';
+            else if (statusInput === '2') newStatus = 'Не хватает';
+            else if (statusInput === '3') newStatus = 'Нужно закупить';
+
+            item.category = newCategory.trim();
+            item.subCategory = newSubCategory.trim();
+            item.name = newName.trim();
+            item.total = Math.max(0, parseInt(newTotal, 10));
+            item.inUse = Math.max(0, parseInt(newInUse, 10));
+            item.broken = Math.max(0, parseInt(newBroken, 10));
+            item.repair = Math.max(0, parseInt(newRepair, 10));
+            item.notes = newNotes.trim();
+            item.status = newStatus;
+
+            populateCategories();
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        // Галочка "сломано" (если захочешь вернуть, можно повесить на неё эту функцию)
         window.toggleBrokenFlag = function(itemName, checked) {
+            if (!isAdmin) return;
             const item = findItemByName(itemName);
             if (!item) return;
 
@@ -931,15 +1015,6 @@
                 item.broken = item.broken;
             }
 
-            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
-            renderTable(data);
-        };
-
-        // Изменение статуса
-        window.changeStatus = function(itemName, newStatus) {
-            const item = findItemByName(itemName);
-            if (!item) return;
-            item.status = newStatus;
             const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             renderTable(data);
         };
@@ -959,6 +1034,7 @@
         }
 
         document.getElementById('headerImageWrapper').addEventListener('click', () => {
+            if (!isAdmin) return;
             const current = headerImage.src;
             const input = prompt('Вставьте URL новой картинки для шапки склада:', current || defaultHeaderImage);
             if (!input) return;
@@ -971,6 +1047,8 @@
         // Кнопка "Добавить товар"
         const addItemBtn = document.getElementById('addItemBtn');
         addItemBtn.addEventListener('click', () => {
+            if (!isAdmin) return;
+
             const category = prompt('Категория (например: Мебель, Спортивное оборудование):', '');
             if (category === null || category.trim() === '') return;
 
@@ -1002,10 +1080,44 @@
             renderTable(data);
         });
 
+        // Режим администратора
+        function askAdmin() {
+            const wantAdmin = confirm('Вы администратор? Нажмите "ОК" для входа, или "Отмена" для режима только просмотра.');
+            if (!wantAdmin) {
+                isAdmin = false;
+                updateModeBadge();
+                return;
+            }
+            const pwd = prompt('Введите пароль администратора:');
+            if (pwd === ADMIN_PASSWORD) {
+                isAdmin = true;
+                alert('Админ-режим включен');
+            } else {
+                alert('Неверный пароль, режим только просмотра');
+                isAdmin = false;
+            }
+            updateModeBadge();
+        }
+
+        function updateModeBadge() {
+            const badge = document.getElementById('modeBadge');
+            if (!badge) return;
+            if (isAdmin) {
+                badge.textContent = 'Режим: администратор';
+                badge.style.color = 'var(--color-success)';
+                badge.style.borderColor = 'var(--color-success)';
+            } else {
+                badge.textContent = 'Режим: просмотр (read-only)';
+                badge.style.color = 'var(--color-text-secondary)';
+                badge.style.borderColor = 'var(--color-border)';
+            }
+        }
+
         // Инициализация
         loadHeaderImage();
         populateCategories();
         renderTable(getAllItems());
+        askAdmin();
     </script>
 </body>
 </html>
