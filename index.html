@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Складской Учет Инвентаря</title>
+    <title>Экватор Склад — учет инвентаря</title>
     <style>
         * {
             margin: 0;
@@ -61,7 +61,48 @@
 
         h1 {
             font-size: 28px;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
+        }
+
+        .header-top {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .header-text {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .header-image-wrapper {
+            width: 160px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .header-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .header-image-hint {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-size: 10px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 999px;
         }
 
         .tabs {
@@ -291,19 +332,6 @@
             color: var(--color-primary);
         }
 
-        .history-item {
-            padding: 12px;
-            border-left: 3px solid var(--color-primary);
-            margin-bottom: 10px;
-            background: var(--color-background);
-            border-radius: 4px;
-        }
-
-        .history-time {
-            font-size: 12px;
-            color: var(--color-text-secondary);
-        }
-
         .btn-icon {
             background: none;
             border: none;
@@ -319,6 +347,29 @@
             background: var(--color-border);
         }
 
+        .editable-cell {
+            cursor: pointer;
+        }
+
+        .editable-cell:hover {
+            background: rgba(33, 128, 141, 0.08);
+        }
+
+        .broken-flag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .badge-mode {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+        }
+
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -332,19 +383,38 @@
             th, td {
                 padding: 8px 5px;
             }
+
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-image-wrapper {
+                width: 100%;
+                max-width: 260px;
+            }
         }
     </style>
-    <!-- SheetJS для экспорта в Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📦 Складской Учет Инвентаря</h1>
-            <p style="color: var(--color-text-secondary); margin-top: 5px;">Система учета инвентаря для мероприятий</p>
+            <div class="header-top">
+                <div class="header-text">
+                    <h1>📦 Экватор Склад — учет инвентаря</h1>
+                    <p style="color: var(--color-text-secondary); margin-top: 5px;">
+                        Система учета инвентаря для мероприятий. Клик по полям — редактирование (только для администратора).
+                    </p>
+                    <div id="modeBadge" class="badge-mode">Режим: просмотр</div>
+                </div>
+                <div class="header-image-wrapper" id="headerImageWrapper">
+                    <img id="headerImage" src="" alt="Изображение склада">
+                    <div class="header-image-hint">Изменить картинку</div>
+                </div>
+            </div>
             
             <div class="tabs">
-                <button class="tab active" data-tab="main">Основной склад</button>
+                <button class="tab active" data-tab="main">Основной склад (все)</button>
                 <button class="tab" data-tab="flags">Флаги и виндеры</button>
                 <button class="tab" data-tab="tablecloths">Скатерти</button>
                 <button class="tab" data-tab="vests">Манишки</button>
@@ -372,14 +442,12 @@
         </div>
 
         <div class="controls">
-            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по названию...">
+            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по категории, подгруппе и названию...">
             <select id="categoryFilter">
                 <option value="">Все категории</option>
             </select>
-            <button class="btn btn-secondary" id="deleteCategoryBtn">🗑 Удалить категорию</button>
             <button class="btn" id="addMovementBtn">➕ Добавить движение</button>
-            <button class="btn btn-secondary" id="syncBtn">🔄 Синхронизация</button>
-            <button class="btn btn-secondary" id="setupBtn">⚙️ Настройки</button>
+            <button class="btn btn-secondary" id="addItemBtn">➕ Добавить товар</button>
             <button class="btn btn-secondary" id="exportBtn">📥 Экспорт в Excel</button>
         </div>
 
@@ -388,6 +456,7 @@
                 <thead>
                     <tr>
                         <th>Категория</th>
+                        <th>Подгруппа</th>
                         <th>Наименование</th>
                         <th>Всего</th>
                         <th>В эксплуатации</th>
@@ -401,45 +470,6 @@
                 </thead>
                 <tbody id="tableBody"></tbody>
             </table>
-        </div>
-    </div>
-
-    <div class="modal" id="setupModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>⚙️ Настройка Firebase</h2>
-                <p style="color: var(--color-text-secondary); margin-top: 10px;">Для синхронизации данных между устройствами</p>
-            </div>
-            <div class="form-group">
-                <label>Статус подключения</label>
-                <div id="connectionStatus" style="padding: 10px; border-radius: 8px; background: var(--color-border); margin-bottom: 15px;">
-                    <span class="status-badge status-out">❌ Не подключено</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>API Key</label>
-                <input type="text" id="firebaseApiKey" placeholder="AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX">
-            </div>
-            <div class="form-group">
-                <label>Database URL</label>
-                <input type="text" id="firebaseDatabaseUrl" placeholder="https://your-project.firebaseio.com">
-            </div>
-            <div class="form-group">
-                <label>Project ID</label>
-                <input type="text" id="firebaseProjectId" placeholder="your-project-id">
-            </div>
-            <div style="background: var(--color-background); padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 13px; line-height: 1.6;">
-                <strong>📖 Как получить данные Firebase:</strong><br>
-                1. Перейди на <a href="https://console.firebase.google.com/" target="_blank" style="color: var(--color-primary);">console.firebase.google.com</a><br>
-                2. Создай новый проект или выбери существующий<br>
-                3. Перейди в Project Settings → General<br>
-                4. Прокрути вниз до "Your apps" → Web app<br>
-                5. Скопируй apiKey, databaseURL, projectId
-            </div>
-            <div class="modal-actions">
-                <button class="btn" id="saveFirebaseBtn">Подключить Firebase</button>
-                <button class="btn btn-secondary" id="closeSetupBtn">Закрыть</button>
-            </div>
         </div>
     </div>
 
@@ -490,171 +520,103 @@
     </div>
 
     <script>
+        const ADMIN_PASSWORD = 'ekvator2024';
+        let isAdmin = false;
+
         const inventory = {
             main: [
-                {category: "Мебель", name: "Стулья", total: 340, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мебель", name: "Столы", total: 178, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мебель", name: "Столы новые (в коробках)", total: 30, inUse: 0, broken: 0, repair: 0, notes: "Не распечатаны"},
-                {category: "Оборудование", name: "Рол-ап", total: 47, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Бытовая техника", name: "Утюг", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Бытовая техника", name: "Отпариватель", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Весы", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Весы командные", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Дартс", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Стойки для дартса", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Столы для армрестлинга", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Турник", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Маты красно-желтые", total: 6, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Будо маты", total: 10, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Счетчик для гирь электронный со стойками", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Таймер для кроссфита", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные желто-синие", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные пляжные желто-зеленые", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные бело-синие", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Футбольные Фонбет (новые)", total: 18, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Футбольные Adidas", total: 8, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные обычные", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные 3х3", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные SIBUR", total: 11, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Блины 5 кг", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Блины 15 кг", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Гири 24 кг", total: 9, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Гири 16 кг", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Удочки", total: 84, inUse: 0, broken: 0, repair: 0, notes: "84-100 можно собрать"},
-                {category: "Безопасность", name: "Огнетушители", total: 21, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Связь", name: "Рации", total: 14, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Электрика", name: "Удлинители", total: 24, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Оборудование", name: "Планшетки", total: 110, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Настольные игры", name: "Шахматы", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Настольные игры", name: "Нарды", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""}
+                {category: "Мебель", subCategory: "Стулья", name: "Стулья", total: 340, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мебель", subCategory: "Столы", name: "Столы", total: 178, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мебель", subCategory: "Столы новые", name: "Столы новые (в коробках)", total: 30, inUse: 0, broken: 0, repair: 0, notes: "Не распечатаны", status: "В наличии"},
+                {category: "Оборудование", subCategory: "Рекламные конструкции", name: "Рол-ап", total: 47, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Бытовая техника", subCategory: "Глажка", name: "Утюг", total: 1, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Бытовая техника", subCategory: "Глажка", name: "Отпариватель", total: 1, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Измерение", name: "Весы", total: 5, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Измерение", name: "Весы командные", total: 1, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Метание", name: "Дартс", total: 7, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Метание", name: "Стойки для дартса", total: 7, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Силовые", name: "Столы для армрестлинга", total: 2, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Турники", name: "Турник", total: 1, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное покрытие", subCategory: "Маты", name: "Маты красно-желтые", total: 6, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное покрытие", subCategory: "Маты", name: "Будо маты", total: 10, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Электроника", subCategory: "Счетчики", name: "Счетчик для гирь электронный со стойками", total: 2, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Электроника", subCategory: "Таймеры", name: "Таймер для кроссфита", total: 2, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Волейбол", name: "Волейбольные желто-синие", total: 16, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Волейбол пляжный", name: "Волейбольные пляжные желто-зеленые", total: 1, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Волейбол", name: "Волейбольные бело-синие", total: 5, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Футбол", name: "Футбольные Фонбет (новые)", total: 18, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Футбол", name: "Футбольные Adidas", total: 8, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Баскетбол", name: "Баскетбольные обычные", total: 13, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Баскетбол 3х3", name: "Баскетбольные 3х3", total: 13, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Мячи", subCategory: "Баскетбол", name: "Баскетбольные SIBUR", total: 11, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Блины", name: "Блины 5 кг", total: 16, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Блины", name: "Блины 15 кг", total: 13, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Гири", name: "Гири 24 кг", total: 9, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Гири", name: "Гири 16 кг", total: 5, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Спортивное оборудование", subCategory: "Инвентарь", name: "Удочки", total: 84, inUse: 0, broken: 0, repair: 0, notes: "84-100 можно собрать", status: "В наличии"},
+                {category: "Безопасность", subCategory: "Огнетушители", name: "Огнетушители", total: 21, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Связь", subCategory: "Рации", name: "Рации", total: 14, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Электрика", subCategory: "Удлинители", name: "Удлинители", total: 24, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Оборудование", subCategory: "Офис", name: "Планшетки", total: 110, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Настольные игры", subCategory: "Шахматы", name: "Шахматы", total: 30, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Настольные игры", subCategory: "Нарды", name: "Нарды", total: 30, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"}
             ],
             flags: [
-                {name: "Олимбет", total: 20, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР виндеры (красный, белый, синий)", total: 68, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР виндеры игры (с рисунком)", total: 65, inUse: 0, broken: 0, repair: 0},
-                {name: "Ростех", total: 24, inUse: 0, broken: 0, repair: 0},
-                {name: "АРКС зеленые", total: 19, inUse: 0, broken: 0, repair: 0},
-                {name: "Флаг России", total: 5, inUse: 0, broken: 0, repair: 0}
+                {category: "Флаги и виндеры", subCategory: "Олимбет", name: "Олимбет", total: 20, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Флаги и виндеры", subCategory: "ТР (крас/бел/син)", name: "ТР виндеры (красный, белый, синий)", total: 68, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Флаги и виндеры", subCategory: "ТР с рисунком", name: "ТР виндеры игры (с рисунком)", total: 65, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Флаги и виндеры", subCategory: "Ростех", name: "Ростех", total: 24, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Флаги и виндеры", subCategory: "АРКС", name: "АРКС зеленые", total: 19, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Флаги и виндеры", subCategory: "Государственные", name: "Флаг России", total: 5, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"}
             ],
             tablecloths: [
-                {name: "ТР скатерть цветная", total: 15, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР скатерть синяя", total: 12, inUse: 0, broken: 0, repair: 0},
-                {name: "Черная скатерть", total: 33, inUse: 0, broken: 0, repair: 0},
-                {name: "Скатерть АРКС", total: 32, inUse: 0, broken: 0, repair: 0}
+                {category: "Скатерти", subCategory: "ТР цветная", name: "ТР скатерть цветная", total: 15, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Скатерти", subCategory: "ТР синяя", name: "ТР скатерть синяя", total: 12, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Скатерти", subCategory: "Черная", name: "Черная скатерть", total: 33, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Скатерти", subCategory: "АРКС", name: "Скатерть АРКС", total: 32, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"}
             ],
             vests: [
-                {name: "Персонал красный атлас", total: 42, inUse: 0, broken: 0, repair: 0},
-                {name: "Судья синий атлас", total: 150, inUse: 0, broken: 0, repair: 0},
-                {name: "Красные STAFF", total: 47, inUse: 0, broken: 0, repair: 0},
-                {name: "Голубая-салатовая двухсторонняя", total: 70, inUse: 0, broken: 0, repair: 0}
+                {category: "Манишки", subCategory: "Персонал", name: "Персонал красный атлас", total: 42, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Манишки", subCategory: "Судья", name: "Судья синий атлас", total: 150, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Манишки", subCategory: "STAFF", name: "Красные STAFF", total: 47, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"},
+                {category: "Манишки", subCategory: "Двухсторонние", name: "Голубая-салатовая двухсторонняя", total: 70, inUse: 0, broken: 0, repair: 0, notes: "", status: "В наличии"}
             ]
         };
 
         let journal = [];
         let currentTab = 'main';
-        let firebaseConfig = null;
-        let db = null;
-        let isConnected = false;
 
-        function loadFirebaseConfig() {
-            const saved = localStorage.getItem('firebaseConfig');
-            if (saved) {
-                firebaseConfig = JSON.parse(saved);
-                initFirebase();
-            }
+        function getAllItems() {
+            return [
+                ...inventory.main,
+                ...inventory.flags,
+                ...inventory.tablecloths,
+                ...inventory.vests
+            ];
         }
 
-        function initFirebase() {
-            if (!firebaseConfig) return;
-
-            try {
-                db = {
-                    apiKey: firebaseConfig.apiKey,
-                    databaseURL: firebaseConfig.databaseURL,
-                    projectId: firebaseConfig.projectId
-                };
-                isConnected = true;
-                updateConnectionStatus(true);
-                loadDataFromFirebase();
-            } catch (error) {
-                console.error('Firebase initialization error:', error);
-                isConnected = false;
-                updateConnectionStatus(false);
+        function findItemByName(name) {
+            const arrays = [
+                inventory.main,
+                inventory.flags,
+                inventory.tablecloths,
+                inventory.vests
+            ];
+            for (const arr of arrays) {
+                const found = arr.find(i => i.name === name);
+                if (found) return found;
             }
-        }
-
-        function updateConnectionStatus(connected) {
-            const statusDiv = document.getElementById('connectionStatus');
-            if (!statusDiv) return;
-            
-            if (connected) {
-                statusDiv.innerHTML = '<span class="status-badge status-available">✓ Подключено к Firebase</span>';
-            } else {
-                statusDiv.innerHTML = '<span class="status-badge status-out">❌ Не подключено</span>';
-            }
-        }
-
-        async function saveDataToFirebase() {
-            if (!isConnected || !db) {
-                alert('Firebase не подключен. Откройте настройки для подключения.');
-                return;
-            }
-
-            try {
-                const data = {
-                    inventory: inventory,
-                    journal: journal,
-                    lastUpdated: new Date().toISOString()
-                };
-
-                const response = await fetch(`${db.databaseURL}/inventory.json`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    alert('✓ Данные успешно синхронизированы с облаком!');
-                } else {
-                    throw new Error('Ошибка синхронизации');
-                }
-            } catch (error) {
-                console.error('Save error:', error);
-                alert('❌ Ошибка синхранизации: ' + error.message);
-            }
-        }
-
-        async function loadDataFromFirebase() {
-            if (!isConnected || !db) return;
-
-            try {
-                const response = await fetch(`${db.databaseURL}/inventory.json`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.inventory) {
-                        inventory.main = data.inventory.main || inventory.main;
-                        inventory.flags = data.inventory.flags || inventory.flags;
-                        inventory.tablecloths = data.inventory.tablecloths || inventory.tablecloths;
-                        inventory.vests = data.inventory.vests || inventory.vests;
-                        journal = data.journal || journal;
-                        renderTable(inventory[currentTab]);
-                        console.log('Данные загружены из Firebase');
-                    }
-                }
-            } catch (error) {
-                console.error('Load error:', error);
-            }
+            return null;
         }
 
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             const theadRow = document.querySelector('#inventoryTable thead tr');
 
-            if (currentTab !== 'journal' && theadRow.children.length !== 10) {
+            if (currentTab !== 'journal' && theadRow.children.length !== 11) {
                 theadRow.innerHTML = `
                     <th>Категория</th>
+                    <th>Подгруппа</th>
                     <th>Наименование</th>
                     <th>Всего</th>
                     <th>В эксплуатации</th>
@@ -673,40 +635,52 @@
             const categoryFilter = document.getElementById('categoryFilter').value;
 
             const filtered = data.filter(item => {
-                const matchesSearch = item.name.toLowerCase().includes(searchTerm);
+                const haystack = `${item.category || ''} ${item.subCategory || ''} ${item.name}`.toLowerCase();
+                const matchesSearch = haystack.includes(searchTerm);
                 const matchesCategory = !categoryFilter || item.category === categoryFilter;
                 return matchesSearch && matchesCategory;
             });
 
             filtered.forEach(item => {
                 const available = item.total - item.inUse;
-                let statusClass = 'status-available';
-                let statusText = '✓ В наличии';
+                const status = item.status || 'В наличии';
 
-                if (available === 0) {
-                    statusClass = 'status-out';
-                    statusText = '✗ Нет на складе';
-                } else if (available < 10) {
+                let statusClass = 'status-available';
+                let statusText = 'В наличии';
+
+                if (status === 'В наличии') {
+                    statusClass = 'status-available';
+                    statusText = 'В наличии';
+                } else if (status === 'Не хватает') {
                     statusClass = 'status-low';
-                    statusText = '⚠ Мало';
+                    statusText = 'Не хватает';
+                } else if (status === 'Нужно закупить') {
+                    statusClass = 'status-out';
+                    statusText = 'Нужно закупить';
                 }
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${item.category || '-'}</td>
-                    <td><strong>${item.name}</strong></td>
-                    <td>${item.total}</td>
-                    <td>${item.inUse}</td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'category')">${item.category || '-'}</td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'subCategory')">${item.subCategory || '-'}</td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'name')"><strong>${item.name}</strong></td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'total')">${item.total}</td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'inUse')">${item.inUse}</td>
                     <td>${available}</td>
-                    <td>${item.broken}</td>
-                    <td>${item.repair}</td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>${item.notes || '-'}</td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'broken')">${item.broken}</td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'repair')">${item.repair}</td>
+                    <td class="editable-cell" onclick="editStatus('${item.name}')">
+                        <span class="status-badge ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'notes')">
+                        ${item.notes || '-'}
+                    </td>
                     <td>
-                        <button class="btn-icon" onclick="editItem('${currentTab}', '${item.name}')" title="Редактировать">✏️</button>
-                        <button class="btn-icon" onclick="quickAdd('${currentTab}', '${item.name}')" title="Добавить">➕</button>
-                        <button class="btn-icon" onclick="quickRemove('${currentTab}', '${item.name}')" title="Уменьшить">➖</button>
-                        <button class="btn-icon" onclick="deleteItem('${currentTab}', '${item.name}')" title="Удалить позицию">🗑</button>
+                        <button class="btn-icon" onclick="editItem('${item.name}')" title="Редактировать всё">✏️</button>
+                        <button class="btn-icon" onclick="quickAdd('${item.name}')" title="Добавить">➕</button>
+                        <button class="btn-icon" onclick="quickRemove('${item.name}')" title="Уменьшить">➖</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -728,7 +702,8 @@
         }
 
         function populateCategories() {
-            const categories = [...new Set(inventory.main.map(item => item.category))];
+            const allItems = getAllItems();
+            const categories = [...new Set(allItems.map(item => item.category))];
             const select = document.getElementById('categoryFilter');
             select.innerHTML = '<option value="">Все категории</option>';
             categories.forEach(cat => {
@@ -743,7 +718,7 @@
             const select = document.getElementById('itemName');
             select.innerHTML = '<option value="">Выберите товар</option>';
             
-            const currentData = inventory[currentTab];
+            const currentData = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             currentData.forEach(item => {
                 const option = document.createElement('option');
                 option.value = item.name;
@@ -760,6 +735,8 @@
                 
                 if (currentTab === 'journal') {
                     renderJournal();
+                } else if (currentTab === 'main') {
+                    renderTable(getAllItems());
                 } else {
                     renderTable(inventory[currentTab]);
                 }
@@ -767,16 +744,17 @@
         });
 
         document.getElementById('searchInput').addEventListener('input', () => {
-            if (currentTab === 'journal') return;
-            renderTable(inventory[currentTab]);
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
         });
 
         document.getElementById('categoryFilter').addEventListener('change', () => {
-            if (currentTab === 'journal') return;
-            renderTable(inventory[currentTab]);
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
         });
 
         document.getElementById('addMovementBtn').addEventListener('click', () => {
+            if (!isAdmin) return;
             populateItemSelect();
             document.getElementById('movementModal').classList.add('active');
         });
@@ -788,6 +766,7 @@
 
         document.getElementById('movementForm').addEventListener('submit', (e) => {
             e.preventDefault();
+            if (!isAdmin) return;
             
             const operation = document.getElementById('operationType').value;
             const itemName = document.getElementById('itemName').value;
@@ -797,7 +776,7 @@
             const event = document.getElementById('event').value;
             const notes = document.getElementById('notes').value;
 
-            const item = inventory[currentTab].find(i => i.name === itemName);
+            const item = findItemByName(itemName);
             
             if (item) {
                 if (operation === 'Выдача') {
@@ -818,7 +797,8 @@
                     notes
                 });
 
-                renderTable(inventory[currentTab]);
+                const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+                renderTable(data);
                 document.getElementById('movementModal').classList.remove('active');
                 document.getElementById('movementForm').reset();
             }
@@ -842,8 +822,7 @@
 
             tbody.innerHTML = '';
             
-            const reversed = journal.slice().reverse();
-            reversed.forEach(entry => {
+            journal.slice().reverse().forEach(entry => {
                 const row = document.createElement('tr');
                 const opClass = entry.operation === 'Выдача' ? 'status-out' : 'status-available';
                 row.innerHTML = `
@@ -865,194 +844,280 @@
             }
         }
 
-        document.getElementById('setupBtn').addEventListener('click', () => {
-            document.getElementById('setupModal').classList.add('active');
-            updateConnectionStatus(isConnected);
-            
-            if (firebaseConfig) {
-                document.getElementById('firebaseApiKey').value = firebaseConfig.apiKey || '';
-                document.getElementById('firebaseDatabaseUrl').value = firebaseConfig.databaseURL || '';
-                document.getElementById('firebaseProjectId').value = firebaseConfig.projectId || '';
-            }
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            alert('Функция экспорта в Excel будет добавлена позже');
         });
 
-        document.getElementById('closeSetupBtn').addEventListener('click', () => {
-            document.getElementById('setupModal').classList.remove('active');
-        });
-
-        document.getElementById('saveFirebaseBtn').addEventListener('click', () => {
-            const apiKey = document.getElementById('firebaseApiKey').value.trim();
-            const databaseURL = document.getElementById('firebaseDatabaseUrl').value.trim();
-            const projectId = document.getElementById('firebaseProjectId').value.trim();
-
-            if (!apiKey || !databaseURL || !projectId) {
-                alert('❌ Заполните все поля!');
-                return;
-            }
-
-            firebaseConfig = { apiKey, databaseURL, projectId };
-            localStorage.setItem('firebaseConfig', JSON.stringify(firebaseConfig));
-            
-            initFirebase();
-            document.getElementById('setupModal').classList.remove('active');
-            alert('✓ Firebase настроен! Данные будут синхронизироваться автоматически.');
-        });
-
-        document.getElementById('syncBtn').addEventListener('click', () => {
-            if (!isConnected) {
-                alert('Сначала настройте Firebase в разделе Настройки');
-                document.getElementById('setupModal').classList.add('active');
-                return;
-            }
-            saveDataToFirebase();
-        });
-
-        // Удаление одной позиции
-        window.deleteItem = function(tab, itemName) {
-            const arr = inventory[tab];
-            const idx = arr.findIndex(i => i.name === itemName);
-            if (idx === -1) return;
-
-            const ok = confirm(`Удалить позицию "${itemName}" безвозвратно?`);
-            if (!ok) return;
-
-            arr.splice(idx, 1);
-            renderTable(inventory[currentTab]);
-        };
-
-        // Удаление категории целиком
-        document.getElementById('deleteCategoryBtn').addEventListener('click', () => {
-            const select = document.getElementById('categoryFilter');
-            const category = select.value;
-
-            if (!category) {
-                alert('Сначала выберите категорию в фильтре.');
-                return;
-            }
-
-            const ok = confirm(
-                `Удалить ВСЕ позиции категории "${category}" безвозвратно?\n` +
-                `Эта операция затронет только вкладку "Основной склад".`
-            );
-            if (!ok) return;
-
-            inventory.main = inventory.main.filter(item => item.category !== category);
-
-            populateCategories();
-            document.getElementById('categoryFilter').value = '';
-            if (currentTab === 'main') {
-                renderTable(inventory.main);
-            }
-        });
-
-        window.editItem = function(tab, itemName) {
-            const item = inventory[tab].find(i => i.name === itemName);
+        // Редактирование чисел
+        window.editNumberField = function(itemName, field) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
             if (!item) return;
 
-            const newTotal = prompt(`Редактировать "${item.name}"\n\nВсего на складе:`, item.total);
-            if (newTotal !== null && !isNaN(newTotal)) {
-                item.total = parseInt(newTotal);
-            }
+            const labels = {
+                total: 'Всего',
+                inUse: 'В эксплуатации',
+                broken: 'Сломано',
+                repair: 'На ремонте'
+            };
+            const label = labels[field] || field;
+            const currentValue = item[field] ?? 0;
 
-            const newInUse = prompt(`В эксплуатации:`, item.inUse);
-            if (newInUse !== null && !isNaN(newInUse)) {
-                item.inUse = parseInt(newInUse);
-            }
+            const input = prompt(`${item.name}\n${label}:`, currentValue);
+            if (input === null) return;
+            if (input.trim() === '' || isNaN(input)) return;
 
-            const newBroken = prompt(`Сломано:`, item.broken);
-            if (newBroken !== null && !isNaN(newBroken)) {
-                item.broken = parseInt(newBroken);
-            }
+            const value = Math.max(0, parseInt(input, 10));
+            item[field] = value;
 
-            const newRepair = prompt(`На ремонте:`, item.repair);
-            if (newRepair !== null && !isNaN(newRepair)) {
-                item.repair = parseInt(newRepair);
-            }
-
-            const newNotes = prompt(`Примечания:`, item.notes || '');
-            if (newNotes !== null) {
-                item.notes = newNotes;
-            }
-
-            renderTable(inventory[currentTab]);
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
         };
 
-        window.quickAdd = function(tab, itemName) {
-            const item = inventory[tab].find(i => i.name === itemName);
+        // Редактирование текстовых полей
+        window.editTextField = function(itemName, field) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const labels = {
+                category: 'Категория',
+                subCategory: 'Подгруппа',
+                name: 'Наименование',
+                notes: 'Примечания'
+            };
+            const label = labels[field] || field;
+            const currentValue = item[field] ?? '';
+
+            const input = prompt(`${item.name}\n${label}:`, currentValue);
+            if (input === null) return;
+
+            item[field] = input.trim();
+
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        // Быстро добавить / уменьшить количество
+        window.quickAdd = function(itemName) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
             if (!item) return;
 
             const quantity = prompt(`Добавить количество для "${item.name}":`, '1');
             if (quantity !== null && !isNaN(quantity)) {
-                const amount = parseInt(quantity);
+                const amount = parseInt(quantity, 10);
                 item.total += amount;
-                renderTable(inventory[currentTab]);
+                const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+                renderTable(data);
             }
         };
 
-        window.quickRemove = function(tab, itemName) {
-            const item = inventory[tab].find(i => i.name === itemName);
+        window.quickRemove = function(itemName) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
             if (!item) return;
 
             const quantity = prompt(`Уменьшить количество для "${item.name}":`, '1');
             if (quantity !== null && !isNaN(quantity)) {
-                const amount = parseInt(quantity);
+                const amount = parseInt(quantity, 10);
                 item.total = Math.max(0, item.total - amount);
-                renderTable(inventory[currentTab]);
+                const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+                renderTable(data);
             }
         };
 
-        // Экспорт в Excel
-        document.getElementById('exportBtn').addEventListener('click', () => {
-            const wb = XLSX.utils.book_new();
+        // Редактирование статуса по клику
+        window.editStatus = function(itemName) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
 
-            const allData = {
-                'Основной склад': inventory.main,
-                'Флаги и виндеры': inventory.flags,
-                'Скатерти': inventory.tablecloths,
-                'Манишки': inventory.vests
-            };
+            const current = item.status || 'В наличии';
+            const msg = `${item.name}\nТекущий статус: ${current}\n\n1 — В наличии\n2 — Не хватает\n3 — Нужно закупить\n\nВведите номер статуса:`;
+            const input = prompt(msg, '1');
+            if (input === null) return;
 
-            Object.keys(allData).forEach(sheetName => {
-                const arr = allData[sheetName].map(item => ({
-                    'Категория': item.category || '',
-                    'Наименование': item.name,
-                    'Всего': item.total,
-                    'В эксплуатации': item.inUse,
-                    'На складе': item.total - item.inUse,
-                    'Сломано': item.broken,
-                    'На ремонте': item.repair,
-                    'Примечания': item.notes || ''
-                }));
-                const ws = XLSX.utils.json_to_sheet(arr);
-                XLSX.utils.book_append_sheet(wb, ws, sheetName);
-            });
+            let newStatus = current;
+            if (input === '1') newStatus = 'В наличии';
+            else if (input === '2') newStatus = 'Не хватает';
+            else if (input === '3') newStatus = 'Нужно закупить';
+            else return;
 
-            const journalSheet = journal.map(entry => ({
-                'Дата': entry.date,
-                'Время': entry.time,
-                'Операция': entry.operation,
-                'Наименование': entry.item,
-                'Количество': entry.quantity,
-                'Кому/От кого': entry.person,
-                'Ответственный': entry.responsible,
-                'Мероприятие': entry.event,
-                'Примечания': entry.notes
-            }));
-            const wsJournal = XLSX.utils.json_to_sheet(journalSheet);
-            XLSX.utils.book_append_sheet(wb, wsJournal, 'Журнал');
+            item.status = newStatus;
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
 
-            XLSX.writeFile(wb, 'ekvator-sklad.xlsx');
+        // Полное редактирование строки
+        window.editItem = function(itemName) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const newCategory = prompt(`Редактирование "${item.name}"\nКатегория:`, item.category || '');
+            if (newCategory === null) return;
+
+            const newSubCategory = prompt('Подгруппа:', item.subCategory || '');
+            if (newSubCategory === null) return;
+
+            const newName = prompt('Наименование:', item.name || '');
+            if (newName === null || newName.trim() === '') return;
+
+            const newTotal = prompt('Всего:', item.total);
+            if (newTotal === null || isNaN(newTotal)) return;
+
+            const newInUse = prompt('В эксплуатации:', item.inUse);
+            if (newInUse === null || isNaN(newInUse)) return;
+
+            const newBroken = prompt('Сломано:', item.broken);
+            if (newBroken === null || isNaN(newBroken)) return;
+
+            const newRepair = prompt('На ремонте:', item.repair);
+            if (newRepair === null || isNaN(newRepair)) return;
+
+            const newNotes = prompt('Примечания:', item.notes || '');
+            if (newNotes === null) return;
+
+            const statusMsg = `Статус (сейчас: ${item.status || 'В наличии'})\n1 — В наличии\n2 — Не хватает\n3 — Нужно закупить`;
+            const statusInput = prompt(statusMsg, '1');
+            if (statusInput === null) return;
+
+            let newStatus = item.status || 'В наличии';
+            if (statusInput === '1') newStatus = 'В наличии';
+            else if (statusInput === '2') newStatus = 'Не хватает';
+            else if (statusInput === '3') newStatus = 'Нужно закупить';
+
+            item.category = newCategory.trim();
+            item.subCategory = newSubCategory.trim();
+            item.name = newName.trim();
+            item.total = Math.max(0, parseInt(newTotal, 10));
+            item.inUse = Math.max(0, parseInt(newInUse, 10));
+            item.broken = Math.max(0, parseInt(newBroken, 10));
+            item.repair = Math.max(0, parseInt(newRepair, 10));
+            item.notes = newNotes.trim();
+            item.status = newStatus;
+
+            populateCategories();
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        // Галочка "сломано" (если захочешь вернуть, можно повесить на неё эту функцию)
+        window.toggleBrokenFlag = function(itemName, checked) {
+            if (!isAdmin) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            if (checked && item.broken === 0) {
+                item.broken = 1;
+            } else if (!checked && item.broken > 0) {
+                item.broken = item.broken;
+            }
+
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        // Картинка в шапке с сохранением в localStorage
+        const headerImage = document.getElementById('headerImage');
+        const HEADER_IMAGE_KEY = 'ekvatorHeaderImageUrl';
+        const defaultHeaderImage = 'https://images.pexels.com/photos/4484078/pexels-photo-4484078.jpeg?auto=compress&cs=tinysrgb&w=1200';
+
+        function loadHeaderImage() {
+            try {
+                const saved = localStorage.getItem(HEADER_IMAGE_KEY);
+                headerImage.src = saved || defaultHeaderImage;
+            } catch (e) {
+                headerImage.src = defaultHeaderImage;
+            }
+        }
+
+        document.getElementById('headerImageWrapper').addEventListener('click', () => {
+            if (!isAdmin) return;
+            const current = headerImage.src;
+            const input = prompt('Вставьте URL новой картинки для шапки склада:', current || defaultHeaderImage);
+            if (!input) return;
+            headerImage.src = input;
+            try {
+                localStorage.setItem(HEADER_IMAGE_KEY, input);
+            } catch(e) {}
         });
 
-        loadFirebaseConfig();
-        populateCategories();
-        renderTable(inventory.main);
+        // Кнопка "Добавить товар"
+        const addItemBtn = document.getElementById('addItemBtn');
+        addItemBtn.addEventListener('click', () => {
+            if (!isAdmin) return;
 
-        setInterval(() => {
-            if (isConnected) {
-                loadDataFromFirebase();
+            const category = prompt('Категория (например: Мебель, Спортивное оборудование):', '');
+            if (category === null || category.trim() === '') return;
+
+            const subCategory = prompt('Подгруппа (например: Стулья, Столы):', '');
+            if (subCategory === null) return;
+
+            const name = prompt('Наименование товара:', '');
+            if (name === null || name.trim() === '') return;
+
+            const totalStr = prompt('Количество всего:', '0');
+            if (totalStr === null || isNaN(totalStr)) return;
+            const total = Math.max(0, parseInt(totalStr, 10));
+
+            const newItem = {
+                category: category.trim(),
+                subCategory: subCategory.trim() || '',
+                name: name.trim(),
+                total,
+                inUse: 0,
+                broken: 0,
+                repair: 0,
+                notes: '',
+                status: 'В наличии'
+            };
+
+            inventory.main.push(newItem);
+            populateCategories();
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        });
+
+        // Режим администратора
+        function askAdmin() {
+            const wantAdmin = confirm('Вы администратор? Нажмите "ОК" для входа, или "Отмена" для режима только просмотра.');
+            if (!wantAdmin) {
+                isAdmin = false;
+                updateModeBadge();
+                return;
             }
-        }, 30000);
+            const pwd = prompt('Введите пароль администратора:');
+            if (pwd === ADMIN_PASSWORD) {
+                isAdmin = true;
+                alert('Админ-режим включен');
+            } else {
+                alert('Неверный пароль, режим только просмотра');
+                isAdmin = false;
+            }
+            updateModeBadge();
+        }
+
+        function updateModeBadge() {
+            const badge = document.getElementById('modeBadge');
+            if (!badge) return;
+            if (isAdmin) {
+                badge.textContent = 'Режим: администратор';
+                badge.style.color = 'var(--color-success)';
+                badge.style.borderColor = 'var(--color-success)';
+            } else {
+                badge.textContent = 'Режим: просмотр (read-only)';
+                badge.style.color = 'var(--color-text-secondary)';
+                badge.style.borderColor = 'var(--color-border)';
+            }
+        }
+
+        // Инициализация
+        loadHeaderImage();
+        populateCategories();
+        renderTable(getAllItems());
+        askAdmin();
     </script>
 </body>
 </html>
