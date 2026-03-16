@@ -61,7 +61,48 @@
 
         h1 {
             font-size: 28px;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
+        }
+
+        .header-top {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .header-text {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .header-image-wrapper {
+            width: 160px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .header-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .header-image-hint {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-size: 10px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 999px;
         }
 
         .tabs {
@@ -306,6 +347,21 @@
             background: var(--color-border);
         }
 
+        .editable-cell {
+            cursor: pointer;
+        }
+
+        .editable-cell:hover {
+            background: rgba(33, 128, 141, 0.08);
+        }
+
+        .broken-flag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -319,23 +375,34 @@
             th, td {
                 padding: 8px 5px;
             }
-        }
 
-        /* Подсветка редактируемых ячеек */
-        .editable-cell {
-            cursor: pointer;
-        }
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
 
-        .editable-cell:hover {
-            background: rgba(33, 128, 141, 0.08);
+            .header-image-wrapper {
+                width: 100%;
+                max-width: 260px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📦 Экватор Склад — учет инвентаря</h1>
-            <p style="color: var(--color-text-secondary); margin-top: 5px;">Система учета инвентаря для мероприятий</p>
+            <div class="header-top">
+                <div class="header-text">
+                    <h1>📦 Экватор Склад — учет инвентаря</h1>
+                    <p style="color: var(--color-text-secondary); margin-top: 5px;">
+                        Система учета инвентаря для мероприятий. Клик по любому полю — редактирование.
+                    </p>
+                </div>
+                <div class="header-image-wrapper" id="headerImageWrapper">
+                    <img id="headerImage" src="" alt="Изображение склада">
+                    <div class="header-image-hint">Изменить картинку</div>
+                </div>
+            </div>
             
             <div class="tabs">
                 <button class="tab active" data-tab="main">Основной склад (все)</button>
@@ -366,7 +433,7 @@
         </div>
 
         <div class="controls">
-            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по категории и названию...">
+            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по категории, подгруппе и названию...">
             <select id="categoryFilter">
                 <option value="">Все категории</option>
             </select>
@@ -379,6 +446,7 @@
                 <thead>
                     <tr>
                         <th>Категория</th>
+                        <th>Подгруппа</th>
                         <th>Наименование</th>
                         <th>Всего</th>
                         <th>В эксплуатации</th>
@@ -386,7 +454,7 @@
                         <th>Сломано</th>
                         <th>На ремонте</th>
                         <th>Статус</th>
-                        <th>Примечания</th>
+                        <th>Примечания / Сломано</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -444,61 +512,61 @@
     <script>
         const inventory = {
             main: [
-                {category: "Мебель", name: "Стулья", total: 340, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мебель", name: "Столы", total: 178, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мебель", name: "Столы новые (в коробках)", total: 30, inUse: 0, broken: 0, repair: 0, notes: "Не распечатаны"},
-                {category: "Оборудование", name: "Рол-ап", total: 47, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Бытовая техника", name: "Утюг", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Бытовая техника", name: "Отпариватель", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Весы", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Весы командные", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Дартс", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Стойки для дартса", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Столы для армрестлинга", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Турник", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Маты красно-желтые", total: 6, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Будо маты", total: 10, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Счетчик для гирь электронный со стойками", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Таймер для кроссфита", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные желто-синие", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные пляжные желто-зеленые", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Волейбольные бело-синие", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Футбольные Фонбет (новые)", total: 18, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Футбольные Adidas", total: 8, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные обычные", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные 3х3", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Мячи", name: "Баскетбольные SIBUR", total: 11, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Блины 5 кг", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Блины 15 кг", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Гири 24 кг", total: 9, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Гири 16 кг", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Спортивное оборудование", name: "Удочки", total: 84, inUse: 0, broken: 0, repair: 0, notes: "84-100 можно собрать"},
-                {category: "Безопасность", name: "Огнетушители", total: 21, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Связь", name: "Рации", total: 14, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Электрика", name: "Удлинители", total: 24, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Оборудование", name: "Планшетки", total: 110, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Настольные игры", name: "Шахматы", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""},
-                {category: "Настольные игры", name: "Нарды", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""}
+                {category: "Мебель", subCategory: "Стулья", name: "Стулья", total: 340, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мебель", subCategory: "Столы", name: "Столы", total: 178, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мебель", subCategory: "Столы новые", name: "Столы новые (в коробках)", total: 30, inUse: 0, broken: 0, repair: 0, notes: "Не распечатаны"},
+                {category: "Оборудование", subCategory: "Рекламные конструкции", name: "Рол-ап", total: 47, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Бытовая техника", subCategory: "Глажка", name: "Утюг", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Бытовая техника", subCategory: "Глажка", name: "Отпариватель", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Измерение", name: "Весы", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Измерение", name: "Весы командные", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Метание", name: "Дартс", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Метание", name: "Стойки для дартса", total: 7, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Силовые", name: "Столы для армрестлинга", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Турники", name: "Турник", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное покрытие", subCategory: "Маты", name: "Маты красно-желтые", total: 6, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное покрытие", subCategory: "Маты", name: "Будо маты", total: 10, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Электроника", subCategory: "Счетчики", name: "Счетчик для гирь электронный со стойками", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Электроника", subCategory: "Таймеры", name: "Таймер для кроссфита", total: 2, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Волейбол", name: "Волейбольные желто-синие", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Волейбол пляжный", name: "Волейбольные пляжные желто-зеленые", total: 1, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Волейбол", name: "Волейбольные бело-синие", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Футбол", name: "Футбольные Фонбет (новые)", total: 18, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Футбол", name: "Футбольные Adidas", total: 8, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Баскетбол", name: "Баскетбольные обычные", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Баскетбол 3х3", name: "Баскетбольные 3х3", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Мячи", subCategory: "Баскетбол", name: "Баскетбольные SIBUR", total: 11, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Блины", name: "Блины 5 кг", total: 16, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Блины", name: "Блины 15 кг", total: 13, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Гири", name: "Гири 24 кг", total: 9, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Гири", name: "Гири 16 кг", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Спортивное оборудование", subCategory: "Инвентарь", name: "Удочки", total: 84, inUse: 0, broken: 0, repair: 0, notes: "84-100 можно собрать"},
+                {category: "Безопасность", subCategory: "Огнетушители", name: "Огнетушители", total: 21, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Связь", subCategory: "Рации", name: "Рации", total: 14, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Электрика", subCategory: "Удлинители", name: "Удлинители", total: 24, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Оборудование", subCategory: "Офис", name: "Планшетки", total: 110, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Настольные игры", subCategory: "Шахматы", name: "Шахматы", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Настольные игры", subCategory: "Нарды", name: "Нарды", total: 30, inUse: 0, broken: 0, repair: 0, notes: ""}
             ],
             flags: [
-                {name: "Олимбет", total: 20, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР виндеры (красный, белый, синий)", total: 68, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР виндеры игры (с рисунком)", total: 65, inUse: 0, broken: 0, repair: 0},
-                {name: "Ростех", total: 24, inUse: 0, broken: 0, repair: 0},
-                {name: "АРКС зеленые", total: 19, inUse: 0, broken: 0, repair: 0},
-                {name: "Флаг России", total: 5, inUse: 0, broken: 0, repair: 0}
+                {category: "Флаги и виндеры", subCategory: "Олимбет", name: "Олимбет", total: 20, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Флаги и виндеры", subCategory: "ТР (крас/бел/син)", name: "ТР виндеры (красный, белый, синий)", total: 68, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Флаги и виндеры", subCategory: "ТР с рисунком", name: "ТР виндеры игры (с рисунком)", total: 65, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Флаги и виндеры", subCategory: "Ростех", name: "Ростех", total: 24, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Флаги и виндеры", subCategory: "АРКС", name: "АРКС зеленые", total: 19, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Флаги и виндеры", subCategory: "Государственные", name: "Флаг России", total: 5, inUse: 0, broken: 0, repair: 0, notes: ""}
             ],
             tablecloths: [
-                {name: "ТР скатерть цветная", total: 15, inUse: 0, broken: 0, repair: 0},
-                {name: "ТР скатерть синяя", total: 12, inUse: 0, broken: 0, repair: 0},
-                {name: "Черная скатерть", total: 33, inUse: 0, broken: 0, repair: 0},
-                {name: "Скатерть АРКС", total: 32, inUse: 0, broken: 0, repair: 0}
+                {category: "Скатерти", subCategory: "ТР цветная", name: "ТР скатерть цветная", total: 15, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Скатерти", subCategory: "ТР синяя", name: "ТР скатерть синяя", total: 12, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Скатерти", subCategory: "Черная", name: "Черная скатерть", total: 33, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Скатерти", subCategory: "АРКС", name: "Скатерть АРКС", total: 32, inUse: 0, broken: 0, repair: 0, notes: ""}
             ],
             vests: [
-                {name: "Персонал красный атлас", total: 42, inUse: 0, broken: 0, repair: 0},
-                {name: "Судья синий атлас", total: 150, inUse: 0, broken: 0, repair: 0},
-                {name: "Красные STAFF", total: 47, inUse: 0, broken: 0, repair: 0},
-                {name: "Голубая-салатовая двухсторонняя", total: 70, inUse: 0, broken: 0, repair: 0}
+                {category: "Манишки", subCategory: "Персонал", name: "Персонал красный атлас", total: 42, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Манишки", subCategory: "Судья", name: "Судья синий атлас", total: 150, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Манишки", subCategory: "STAFF", name: "Красные STAFF", total: 47, inUse: 0, broken: 0, repair: 0, notes: ""},
+                {category: "Манишки", subCategory: "Двухсторонние", name: "Голубая-салатовая двухсторонняя", total: 70, inUse: 0, broken: 0, repair: 0, notes: ""}
             ]
         };
 
@@ -508,21 +576,54 @@
         function getAllItems() {
             return [
                 ...inventory.main,
-                ...inventory.flags.map(x => ({ ...x, category: 'Флаги и виндеры' })),
-                ...inventory.tablecloths.map(x => ({ ...x, category: 'Скатерти' })),
-                ...inventory.vests.map(x => ({ ...x, category: 'Манишки' }))
+                ...inventory.flags,
+                ...inventory.tablecloths,
+                ...inventory.vests
             ];
+        }
+
+        function findItemByName(name) {
+            const arrays = [
+                inventory.main,
+                inventory.flags,
+                inventory.tablecloths,
+                inventory.vests
+            ];
+            for (const arr of arrays) {
+                const found = arr.find(i => i.name === name);
+                if (found) return found;
+            }
+            return null;
         }
 
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
+            const theadRow = document.querySelector('#inventoryTable thead tr');
+
+            // Если мы были в журнале, вернём шапку таблицы инвентаря
+            if (currentTab !== 'journal' && theadRow.children.length !== 11) {
+                theadRow.innerHTML = `
+                    <th>Категория</th>
+                    <th>Подгруппа</th>
+                    <th>Наименование</th>
+                    <th>Всего</th>
+                    <th>В эксплуатации</th>
+                    <th>На складе</th>
+                    <th>Сломано</th>
+                    <th>На ремонте</th>
+                    <th>Статус</th>
+                    <th>Примечания / Сломано</th>
+                    <th>Действия</th>
+                `;
+            }
+
             tbody.innerHTML = '';
 
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const categoryFilter = document.getElementById('categoryFilter').value;
 
             const filtered = data.filter(item => {
-                const haystack = `${item.category || ''} ${item.name}`.toLowerCase();
+                const haystack = `${item.category || ''} ${item.subCategory || ''} ${item.name}`.toLowerCase();
                 const matchesSearch = haystack.includes(searchTerm);
                 const matchesCategory = !categoryFilter || item.category === categoryFilter;
                 return matchesSearch && matchesCategory;
@@ -541,20 +642,30 @@
                     statusText = '⚠ Мало';
                 }
 
+                const isBrokenFlag = (item.notes || '').includes('[Сломано]');
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${item.category || '-'}</td>
-                    <td><strong>${item.name}</strong></td>
-                    <td class="editable-cell" onclick="editField('${currentTab}', '${item.name}', 'total')">${item.total}</td>
-                    <td class="editable-cell" onclick="editField('${currentTab}', '${item.name}', 'inUse')">${item.inUse}</td>
-                    <td class="editable-cell" onclick="editField('${currentTab}', '${item.name}', 'available')">${available}</td>
-                    <td class="editable-cell" onclick="editField('${currentTab}', '${item.name}', 'broken')">${item.broken}</td>
-                    <td class="editable-cell" onclick="editField('${currentTab}', '${item.name}', 'repair')">${item.repair}</td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'category')">${item.category || '-'}</td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'subCategory')">${item.subCategory || '-'}</td>
+                    <td class="editable-cell" onclick="editTextField('${item.name}', 'name')"><strong>${item.name}</strong></td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'total')">${item.total}</td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'inUse')">${item.inUse}</td>
+                    <td>${available}</td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'broken')">${item.broken}</td>
+                    <td class="editable-cell" onclick="editNumberField('${item.name}', 'repair')">${item.repair}</td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>${item.notes || '-'}</td>
                     <td>
-                        <button class="btn-icon" onclick="quickAdd('${currentTab}', '${item.name}')" title="Добавить">➕</button>
-                        <button class="btn-icon" onclick="quickRemove('${currentTab}', '${item.name}')" title="Уменьшить">➖</button>
+                        <div class="editable-cell" onclick="editTextField('${item.name}', 'notes')">
+                            ${item.notes || '-'}
+                        </div>
+                        <label class="broken-flag">
+                            <input type="checkbox" ${isBrokenFlag ? 'checked' : ''} onchange="toggleBrokenFlag('${item.name}', this.checked)">
+                            сломано
+                        </label>
+                    </td>
+                    <td>
+                        <button class="btn-icon" onclick="quickAdd('${item.name}')" title="Добавить">➕</button>
+                        <button class="btn-icon" onclick="quickRemove('${item.name}')" title="Уменьшить">➖</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -648,12 +759,7 @@
             const event = document.getElementById('event').value;
             const notes = document.getElementById('notes').value;
 
-            const dataArray = currentTab === 'main' ? getAllItems() : inventory[currentTab];
-            const item = dataArray.find(i => i.name === itemName) ||
-                         inventory.main.find(i => i.name === itemName) ||
-                         inventory.flags.find(i => i.name === itemName) ||
-                         inventory.tablecloths.find(i => i.name === itemName) ||
-                         inventory.vests.find(i => i.name === itemName);
+            const item = findItemByName(itemName);
             
             if (item) {
                 if (operation === 'Выдача') {
@@ -725,57 +831,57 @@
             alert('Функция экспорта в Excel будет добавлена позже');
         });
 
-        window.editField = function(tab, itemName, field) {
-            const allArrays = [
-                inventory.main,
-                inventory.flags,
-                inventory.tablecloths,
-                inventory.vests
-            ];
-            const item = allArrays.flat().find(i => i.name === itemName);
+        // Редактирование чисел
+        window.editNumberField = function(itemName, field) {
+            const item = findItemByName(itemName);
             if (!item) return;
 
-            let currentValue;
-            let label;
-
-            if (field === 'available') {
-                currentValue = item.total - item.inUse;
-                label = 'Доступно на складе';
-            } else {
-                currentValue = item[field];
-                label = {
-                    total: 'Всего',
-                    inUse: 'В эксплуатации',
-                    broken: 'Сломано',
-                    repair: 'На ремонте'
-                }[field] || field;
-            }
+            const labels = {
+                total: 'Всего',
+                inUse: 'В эксплуатации',
+                broken: 'Сломано',
+                repair: 'На ремонте'
+            };
+            const label = labels[field] || field;
+            const currentValue = item[field] ?? 0;
 
             const input = prompt(`${item.name}\n${label}:`, currentValue);
+            if (input === null) return;
+            if (input.trim() === '' || isNaN(input)) return;
 
-            if (input === null || input.trim() === '' || isNaN(input)) return;
-
-            const value = parseInt(input, 10);
-
-            if (field === 'available') {
-                const newTotal = value + item.inUse;
-                item.total = Math.max(0, newTotal);
-            } else {
-                item[field] = Math.max(0, value);
-            }
+            const value = Math.max(0, parseInt(input, 10));
+            item[field] = value;
 
             const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             renderTable(data);
         };
 
-        window.quickAdd = function(tab, itemName) {
-            const allArrays = [
-                inventory.main,
-                inventory.flags,
-                inventory.tablecloths,
-                inventory.vests
-            ];
-            const item = allArrays.flat().find(i => i.name === itemName);
+        // Редактирование текстовых полей
+        window.editTextField = function(itemName, field) {
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const labels = {
+                category: 'Категория',
+                subCategory: 'Подгруппа',
+                name: 'Наименование',
+                notes: 'Примечания'
+            };
+            const label = labels[field] || field;
+            const currentValue = item[field] ?? '';
+
+            const input = prompt(`${item.name}\n${label}:`, currentValue);
+            if (input === null) return;
+
+            item[field] = input.trim();
+
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        // Быстро добавить / уменьшить количество
+        window.quickAdd = function(itemName) {
+            const item = findItemByName(itemName);
             if (!item) return;
 
             const quantity = prompt(`Добавить количество для "${item.name}":`, '1');
@@ -787,14 +893,8 @@
             }
         };
 
-        window.quickRemove = function(tab, itemName) {
-            const allArrays = [
-                inventory.main,
-                inventory.flags,
-                inventory.tablecloths,
-                inventory.vests
-            ];
-            const item = allArrays.flat().find(i => i.name === itemName);
+        window.quickRemove = function(itemName) {
+            const item = findItemByName(itemName);
             if (!item) return;
 
             const quantity = prompt(`Уменьшить количество для "${item.name}":`, '1');
@@ -806,7 +906,57 @@
             }
         };
 
+        // Галочка "сломано"
+        window.toggleBrokenFlag = function(itemName, checked) {
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const tag = '[Сломано]';
+
+            // Обновляем примечания
+            let notes = item.notes || '';
+            const hasTag = notes.includes(tag);
+
+            if (checked && !hasTag) {
+                notes = notes ? `${notes} ${tag}` : tag;
+            } else if (!checked && hasTag) {
+                notes = notes.replace(tag, '').replace(/\s\s+/g, ' ').trim();
+            }
+            item.notes = notes;
+
+            // Число "сломано" — минимально 1 при включении чекбокса
+            if (checked && item.broken === 0) {
+                item.broken = 1;
+            } else if (!checked && item.broken > 0) {
+                item.broken = item.broken; // оставляем как есть, чтобы руками контролировать
+            }
+
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        // Картинка в шапке с сохранением в localStorage
+        const headerImage = document.getElementById('headerImage');
+        const HEADER_IMAGE_KEY = 'ekvatorHeaderImageUrl';
+        const defaultHeaderImage = 'https://images.pexels.com/photos/4484078/pexels-photo-4484078.jpeg?auto=compress&cs=tinysrgb&w=1200';
+
+        function loadHeaderImage() {
+            const saved = localStorage.getItem(HEADER_IMAGE_KEY);
+            headerImage.src = saved || defaultHeaderImage;
+        }
+
+        document.getElementById('headerImageWrapper').addEventListener('click', () => {
+            const current = headerImage.src;
+            const input = prompt('Вставьте URL новой картинки для шапки склада:', current || defaultHeaderImage);
+            if (!input) return;
+            headerImage.src = input;
+            try {
+                localStorage.setItem(HEADER_IMAGE_KEY, input);
+            } catch(e) {}
+        });
+
         // Инициализация
+        loadHeaderImage();
         populateCategories();
         renderTable(getAllItems());
     </script>
