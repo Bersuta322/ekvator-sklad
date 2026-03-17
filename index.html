@@ -516,6 +516,33 @@
     <!-- SheetJS для экспорта в Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- Firebase SDK (через CDN, без import) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // ТВОЙ CONFIG ИЗ КОНСОЛИ
+        const firebaseConfig = {
+            apiKey: "AIzaSyAXc9NAOtzYBSVyzVUX7Nj9aPM9oly5OWg",
+            authDomain: "ekvator-e63ef.firebaseapp.com",
+            projectId: "ekvator-e63ef",
+            storageBucket: "ekvator-e63ef.firebasestorage.app",
+            messagingSenderId: "959285551151",
+            appId: "1:959285551151:web:4cbcda4f230d3b57e2a6da",
+            measurementId: "G-DN4SDY2J1K"
+        };
+
+        // Инициализация Firebase в браузере
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Анонимная авторизация, чтобы люди не логинились
+        auth.signInAnonymously().catch(console.error);
+    </script>
+
+    <!-- ВЕСЬ КОД СКЛАДА (как в paste.txt) -->
     <script>
         const ADMIN_PASSWORD = 'ekvator2024';
         let isAdmin = false;
@@ -969,22 +996,17 @@
             const item = findItemByName(itemName);
             if (!item) return;
 
-            const labels = {
-                total: 'Всего',
-                inUse: 'В эксплуатации',
-                broken: 'Сломано',
-                repair: 'На ремонте'
-            };
-            const label = labels[field] || field;
-            const currentValue = item[field] ?? 0;
+            const current = item[field] || 0;
+            const value = prompt(`Введите новое значение для "${item.name}" (${field}):`, current);
+            if (value === null) return;
 
-            const input = prompt(`${item.name}\n${label}:`, currentValue);
-            if (input === null) return;
-            if (input.trim() === '' || isNaN(input)) return;
+            const parsed = parseInt(value, 10);
+            if (isNaN(parsed) || parsed < 0) {
+                alert('Введите корректное неотрицательное число');
+                return;
+            }
 
-            const value = Math.max(0, parseInt(input, 10));
-            item[field] = value;
-
+            item[field] = parsed;
             const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             renderTable(data);
         };
@@ -994,19 +1016,53 @@
             const item = findItemByName(itemName);
             if (!item) return;
 
-            const labels = {
-                category: 'Категория',
-                subCategory: 'Подгруппа',
-                name: 'Наименование',
-                notes: 'Примечания'
-            };
-            const label = labels[field] || field;
-            const currentValue = item[field] ?? '';
+            const current = item[field] || '';
+            const value = prompt(`Введите новое значение для "${item.name}" (${field}):`, current);
+            if (value === null) return;
 
-            const input = prompt(`${item.name}\n${label}:`, currentValue);
-            if (input === null) return;
+            item[field] = value;
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
 
-            item[field] = input.trim();
+        window.editStatus = function(itemName) {
+            if (!isAdmin && !checkAdminStatus()) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const options = ['В наличии', 'Не хватает', 'Нужно закупить'];
+            const currentIndex = options.indexOf(item.status || 'В наличии');
+            const nextIndex = (currentIndex + 1) % options.length;
+            item.status = options[nextIndex];
+
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+        };
+
+        window.editItem = function(itemName) {
+            if (!isAdmin && !checkAdminStatus()) return;
+            const item = findItemByName(itemName);
+            if (!item) return;
+
+            const newName = prompt('Новое наименование:', item.name);
+            if (newName === null) return;
+            const newCategory = prompt('Новая категория:', item.category || '');
+            if (newCategory === null) return;
+            const newSubCategory = prompt('Новая подгруппа:', item.subCategory || '');
+            if (newSubCategory === null) return;
+            const totalStr = prompt('Новое всего (шт):', item.total);
+            if (totalStr === null) return;
+
+            const totalParsed = parseInt(totalStr, 10);
+            if (isNaN(totalParsed) || totalParsed < 0) {
+                alert('Некорректное значение "всего"');
+                return;
+            }
+
+            item.name = newName;
+            item.category = newCategory;
+            item.subCategory = newSubCategory;
+            item.total = totalParsed;
 
             const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             renderTable(data);
@@ -1017,13 +1073,9 @@
             const item = findItemByName(itemName);
             if (!item) return;
 
-            const quantity = prompt(`Добавить количество для "${item.name}":`, '1');
-            if (quantity !== null && !isNaN(quantity)) {
-                const amount = parseInt(quantity, 10);
-                item.total += amount;
-                const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
-                renderTable(data);
-            }
+            item.total += 1;
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
         };
 
         window.quickRemove = function(itemName) {
@@ -1031,85 +1083,8 @@
             const item = findItemByName(itemName);
             if (!item) return;
 
-            const quantity = prompt(`Уменьшить количество для "${item.name}":`, '1');
-            if (quantity !== null && !isNaN(quantity)) {
-                const amount = parseInt(quantity, 10);
-                item.total = Math.max(0, item.total - amount);
-                const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
-                renderTable(data);
-            }
-        };
-
-        window.editStatus = function(itemName) {
-            if (!isAdmin && !checkAdminStatus()) return;
-            const item = findItemByName(itemName);
-            if (!item) return;
-
-            const current = item.status || 'В наличии';
-            const msg = `${item.name}\nТекущий статус: ${current}\n\n1 — В наличии\n2 — Не хватает\n3 — Нужно закупить\n\nВведите номер статуса:`;
-            const input = prompt(msg, '1');
-            if (input === null) return;
-
-            let newStatus = current;
-            if (input === '1') newStatus = 'В наличии';
-            else if (input === '2') newStatus = 'Не хватает';
-            else if (input === '3') newStatus = 'Нужно закупить';
-            else return;
-
-            item.status = newStatus;
-            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
-            renderTable(data);
-        };
-
-        window.editItem = function(itemName) {
-            if (!isAdmin && !checkAdminStatus()) return;
-            const item = findItemByName(itemName);
-            if (!item) return;
-
-            const newCategory = prompt(`Редактирование "${item.name}"\nКатегория:`, item.category || '');
-            if (newCategory === null) return;
-
-            const newSubCategory = prompt('Подгруппа:', item.subCategory || '');
-            if (newSubCategory === null) return;
-
-            const newName = prompt('Наименование:', item.name || '');
-            if (newName === null || newName.trim() === '') return;
-
-            const newTotal = prompt('Всего:', item.total);
-            if (newTotal === null || isNaN(newTotal)) return;
-
-            const newInUse = prompt('В эксплуатации:', item.inUse);
-            if (newInUse === null || isNaN(newInUse)) return;
-
-            const newBroken = prompt('Сломано:', item.broken);
-            if (newBroken === null || isNaN(newBroken)) return;
-
-            const newRepair = prompt('На ремонте:', item.repair);
-            if (newRepair === null || isNaN(newRepair)) return;
-
-            const newNotes = prompt('Примечания:', item.notes || '');
-            if (newNotes === null) return;
-
-            const statusMsg = `Статус (сейчас: ${item.status || 'В наличии'})\n1 — В наличии\n2 — Не хватает\n3 — Нужно закупить`;
-            const statusInput = prompt(statusMsg, '1');
-            if (statusInput === null) return;
-
-            let newStatus = item.status || 'В наличии';
-            if (statusInput === '1') newStatus = 'В наличии';
-            else if (statusInput === '2') newStatus = 'Не хватает';
-            else if (statusInput === '3') newStatus = 'Нужно закупить';
-
-            item.category = newCategory.trim();
-            item.subCategory = newSubCategory.trim();
-            item.name = newName.trim();
-            item.total = Math.max(0, parseInt(newTotal, 10));
-            item.inUse = Math.max(0, parseInt(newInUse, 10));
-            item.broken = Math.max(0, parseInt(newBroken, 10));
-            item.repair = Math.max(0, parseInt(newRepair, 10));
-            item.notes = newNotes.trim();
-            item.status = newStatus;
-
-            populateCategories();
+            if (item.total <= 0) return;
+            item.total -= 1;
             const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             renderTable(data);
         };
@@ -1117,114 +1092,139 @@
         window.deleteItem = function(itemName) {
             if (!isAdmin && !checkAdminStatus()) return;
 
-            const item = findItemByName(itemName);
-            if (!item) return;
-
-            const ok = confirm(`Удалить позицию "${item.name}" безвозвратно?`);
-            if (!ok) return;
-
-            for (const key of Object.keys(inventory)) {
-                inventory[key] = inventory[key].filter(i => i.name !== itemName);
+            const arrays = ['main', 'flags', 'tablecloths', 'vests'];
+            for (const key of arrays) {
+                const idx = inventory[key].findIndex(i => i.name === itemName);
+                if (idx !== -1) {
+                    const ok = confirm(`Удалить позицию "${itemName}" из раздела "${key}"?`);
+                    if (!ok) return;
+                    inventory[key].splice(idx, 1);
+                    const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+                    renderTable(data);
+                    return;
+                }
             }
-
-            populateCategories();
-            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
-            renderTable(data);
         };
 
-        const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
-        deleteCategoryBtn.addEventListener('click', () => {
+        document.getElementById('addItemBtn').addEventListener('click', () => {
             if (!isAdmin && !checkAdminStatus()) return;
 
-            const select = document.getElementById('categoryFilter');
-            const category = select.value;
+            const sectionMap = {
+                'main': 'Основной склад',
+                'flags': 'Флаги и виндеры',
+                'tablecloths': 'Скатерти',
+                'vests': 'Манишки'
+            };
 
-            if (!category) {
-                alert('Сначала выбери категорию в фильтре, которую нужно удалить.');
+            const sectionKeys = Object.keys(sectionMap);
+            const sectionPrompt = sectionKeys.map((key, idx) => `${idx + 1}. ${sectionMap[key]}`).join('\n');
+            const sectionChoice = prompt(`В какой раздел добавить?\n${sectionPrompt}\n\nВведите номер раздела:`, '1');
+            if (sectionChoice === null) return;
+
+            const sectionIndex = parseInt(sectionChoice, 10) - 1;
+            if (isNaN(sectionIndex) || sectionIndex < 0 || sectionIndex >= sectionKeys.length) {
+                alert('Некорректный выбор раздела');
                 return;
             }
 
-            const ok = confirm(
-                `Удалить ВСЕ позиции категории "${category}" безвозвратно?\n` +
-                `Эта операция удалит товары из всех вкладок, где используется эта категория.`
-            );
-            if (!ok) return;
+            const section = sectionKeys[sectionIndex];
 
-            for (const key of Object.keys(inventory)) {
-                inventory[key] = inventory[key].filter(item => item.category !== category);
-            }
-
-            populateCategories();
-            document.getElementById('categoryFilter').value = '';
-            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
-            renderTable(data);
-        });
-
-        const headerImage = document.getElementById('headerImage');
-        const HEADER_IMAGE_KEY = 'ekvatorHeaderImageUrl';
-
-        function loadHeaderImage() {
-            try {
-                const saved = localStorage.getItem(HEADER_IMAGE_KEY);
-                if (saved) {
-                    headerImage.src = saved;
-                }
-            } catch (e) {
-                // ignore
-            }
-        }
-
-        document.getElementById('headerImageWrapper').addEventListener('click', () => {
-            if (!isAdmin && !checkAdminStatus()) return;
-            const current = headerImage.src;
-            const url = prompt('Введите URL изображения для шапки:', current || '');
-            if (!url) return;
-            headerImage.src = url;
-            try {
-                localStorage.setItem(HEADER_IMAGE_KEY, url);
-            } catch (e) {}
-        });
-
-        const addItemBtn = document.getElementById('addItemBtn');
-        addItemBtn.addEventListener('click', () => {
-            if (!isAdmin && !checkAdminStatus()) return;
-
-            const category = prompt('Категория:', '');
-            if (category === null || category.trim() === '') return;
-
-            const subCategory = prompt('Подгруппа:', '');
+            const name = prompt('Наименование товара:');
+            if (!name) return;
+            const category = prompt('Категория:');
+            if (category === null) return;
+            const subCategory = prompt('Подгруппа:');
             if (subCategory === null) return;
-
-            const name = prompt('Наименование:', '');
-            if (name === null || name.trim() === '') return;
-
             const totalStr = prompt('Всего (шт):', '0');
-            if (totalStr === null || isNaN(totalStr)) return;
+            if (totalStr === null) return;
 
-            const total = Math.max(0, parseInt(totalStr, 10));
+            const totalParsed = parseInt(totalStr, 10);
+            if (isNaN(totalParsed) || totalParsed < 0) {
+                alert('Некорректное значение "всего"');
+                return;
+            }
 
-            const newItem = {
-                category: category.trim(),
-                subCategory: subCategory.trim(),
-                name: name.trim(),
-                total,
+            inventory[section].push({
+                category,
+                subCategory,
+                name,
+                total: totalParsed,
                 inUse: 0,
                 broken: 0,
                 repair: 0,
                 notes: '',
                 status: 'В наличии'
-            };
+            });
 
-            inventory.main.push(newItem);
-            populateCategories();
             const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
             renderTable(data);
+            populateCategories();
         });
 
-        loadHeaderImage();
-        populateCategories();
-        renderTable(getAllItems());
-        updateModeBadge();
+        document.getElementById('deleteCategoryBtn').addEventListener('click', () => {
+            if (!isAdmin && !checkAdminStatus()) return;
+
+            const allItems = getAllItems();
+            const categories = [...new Set(allItems.map(item => item.category))].filter(Boolean);
+            if (categories.length === 0) {
+                alert('Категорий нет.');
+                return;
+            }
+
+            const list = categories.map((cat, i) => `${i + 1}. ${cat}`).join('\n');
+            const choice = prompt(`Выберите категорию для удаления:\n${list}\n\nВНИМАНИЕ: все позиции этой категории будут удалены.\nВведите номер:`);
+            if (choice === null) return;
+
+            const idx = parseInt(choice, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= categories.length) {
+                alert('Некорректный выбор.');
+                return;
+            }
+
+            const catToDelete = categories[idx];
+            const ok = confirm(`Точно удалить ВСЕ позиции категории "${catToDelete}"?`);
+            if (!ok) return;
+
+            ['main', 'flags', 'tablecloths', 'vests'].forEach(key => {
+                inventory[key] = inventory[key].filter(item => item.category !== catToDelete);
+            });
+
+            const data = currentTab === 'main' ? getAllItems() : inventory[currentTab];
+            renderTable(data);
+            populateCategories();
+        });
+
+        function initHeaderImage() {
+            const headerImage = document.getElementById('headerImage');
+            const wrapper = document.getElementById('headerImageWrapper');
+            if (!headerImage || !wrapper) return;
+
+            const savedUrl = localStorage.getItem('ekvator_header_image');
+            if (savedUrl) {
+                headerImage.src = savedUrl;
+            } else {
+                headerImage.src = 'https://images.pexels.com/photos/4484078/pexels-photo-4484078.jpeg?auto=compress&cs=tinysrgb&w=1200';
+            }
+
+            wrapper.addEventListener('click', () => {
+                if (!isAdmin && !checkAdminStatus()) return;
+                const url = prompt('Введите URL картинки для шапки:', headerImage.src);
+                if (url === null) return;
+                if (!url.trim()) {
+                    alert('Пустой URL');
+                    return;
+                }
+                headerImage.src = url.trim();
+                localStorage.setItem('ekvator_header_image', url.trim());
+            });
+        }
+
+        window.addEventListener('load', () => {
+            initHeaderImage();
+            updateModeBadge();
+            populateCategories();
+            renderTable(getAllItems());
+        });
     </script>
 </body>
 </html>
