@@ -609,6 +609,45 @@
 
         let journal = [];
         let currentTab = 'main';
+        // ВРЕМЕННАЯ функция для первой загрузки inventory в Firestore
+async function seedInventoryToFirestore() {
+    // Разрешаем только админу
+    if (!isAdmin && !checkAdminStatus()) return;
+
+    if (!window.db) {
+        alert('Firebase не инициализирован (db не найден)');
+        return;
+    }
+
+    const sections = ['main', 'flags', 'tablecloths', 'vests'];
+    let count = 0;
+
+    for (const section of sections) {
+        for (const item of inventory[section]) {
+            try {
+                await db.collection('items').add({
+                    section,
+                    category: item.category || '',
+                    subCategory: item.subCategory || '',
+                    name: item.name,
+                    total: item.total || 0,
+                    inUse: item.inUse || 0,
+                    broken: item.broken || 0,
+                    repair: item.repair || 0,
+                    notes: item.notes || '',
+                    status: item.status || 'В наличии',
+                    createdAt: new Date().toISOString()
+                });
+                count++;
+            } catch (e) {
+                console.error('Ошибка при добавлении', item.name, e);
+            }
+        }
+    }
+
+    alert('Загружено позиций в Firestore: ' + count + '. Проверь коллекцию items в консоли Firebase.');
+}
+
 
         function updateModeBadge() {
             const badge = document.getElementById('modeBadge');
@@ -1219,12 +1258,20 @@
             });
         }
 
-        window.addEventListener('load', () => {
-            initHeaderImage();
-            updateModeBadge();
-            populateCategories();
-            renderTable(getAllItems());
-        });
+window.addEventListener('load', () => {
+    initHeaderImage();
+    updateModeBadge();
+    populateCategories();
+    renderTable(getAllItems());
+
+    // ВРЕМЕННО: Alt+S запускает заливку inventory в Firestore
+    window.addEventListener('keydown', (e) => {
+        if (e.altKey && e.key.toLowerCase() === 's') {
+            seedInventoryToFirestore();
+        }
+    });
+});
+
     </script>
 </body>
 </html>
